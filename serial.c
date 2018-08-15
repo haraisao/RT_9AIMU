@@ -6,29 +6,12 @@
  *  License: The MIT Licens
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <signal.h>
-
-#include "shmem.h"
+#ifdef TEST
+#define EXTERN 1
+#endif
+#include "RT_9A_IMU.h"
 
 /**/
-#define IMU_HEAD	0xffff52543941
-#define DEFAULT_PORT 	"/dev/ttyACM0"
-#define PACKET_SIZE	28
-
-static int cfd=0;
-
-
-void sighandler(int x)
-{
-  close(cfd);
-  exit(0);
-}
 
 char mkSum(char *data, int len)
 {
@@ -43,15 +26,106 @@ char mkSum(char *data, int len)
   return res;
 }
 
+int open_port(char *dev){
+  struct termios tio;
+  int fd;
+
+  memset(&tio,0,sizeof(tio));
+  tio.c_cflag=CS8|CREAD|CLOCAL;	
+  tio.c_cc[VMIN]=1;
+  cfsetospeed(&tio, B57600);
+  cfsetispeed(&tio, B57600);
+
+  fd=open(dev, O_RDWR|O_NONBLOCK);
+
+  if (fd < 0){
+    fprintf(stderr, "Fail to open %s\n", dev);
+    return(-1);
+  }
+  tcsetattr(fd, TCSANOW, &tio);
+
+  return fd;
+}
+
+int read_one_packet(int fd, char *buf, int len){
+  int c,c1;
+  c=read(fd, buf, len);
+  if (c<0){ return -1; }
+  while (c < len){
+    c1 = read(fd, buf+c, len-c);
+    if (c1<0){ return -1; }
+    c += c1;
+  }
+  return c;
+}
+
+
+int check_packet(char *buf){
+  int idx=0;
+  char *p;
+  do{
+    p=buf+idx;
+    if (p[0]==0xff && p[1]==0xff && p[2] == 0x52 && p[3]==0x54){
+      return idx;
+    }
+    idx++;
+  }while(idx<PACKET_SIZE);
+
+  return -1;
+}
+
+char *read_packet(int fd, char *buf, int buf_len){
+  int c;
+  int idx;
+  memset(buf, 0, buf_len);
+  c=read_one_packet(fd, buf, PACKET_SIZE);
+  if (c<0){
+    return NULL;
+  }
+  idx = check_packet(buf);
+
+  if(idx == 0){ return buf; }
+
+  if(idx < 0){
+    return NULL;
+  }else {
+    c=read_one_packet(fd, buf+PACKET_SIZE, idx);
+    if (c<0){
+      return NULL;
+    }else{
+      return buf+idx;
+    }
+  }
+
+  return NULL;
+}
+
+
+int read_loop(int fd, void*shmem){
+  char buf[PACKET_SIZE*2];
+  char *pack;
+
+  while(1){
+    pack = read_packet(fd, buf, PACKET_SIZE*2);
+    if (pack==NULL){
+      return -1;
+    }else{
+      memcpy(shmem, pack, PACKET_SIZE);
+    }
+  }
+
+  return 0;
+}
+
+#ifdef TEST
 int
 main(int argc, char **argv)
 {
-  struct termios tio;
-  int c;
-  char buf[PACKET_SIZE];
   char *cdev;
+  char buf[PACKET_SIZE*2];
+  char *pack;
   int i;
-  imu_data *data_shmem;
+
 
   signal(SIGINT, sighandler);
 
@@ -61,33 +135,23 @@ main(int argc, char **argv)
     cdev=DEFAULT_PORT;
   } 
 
-  memset(&tio,0,sizeof(tio));
-  tio.c_cflag=CS8|CREAD|CLOCAL;	
-  tio.c_cc[VMIN]=1;
-
-  data_shmem = (imu_data *)map_shared_mem(SHM_ID, sizeof(imu_data), 1);
-
-  cfd=open(cdev, O_RDWR|O_NONBLOCK);
+  cfd = open_port(cdev);
   if (cfd < 0){
     fprintf(stderr, "Fail to open %s\n", cdev);
     exit(-1);
   }
 
-  cfsetospeed(&tio, B57600);
-  cfsetispeed(&tio, B57600);
-  tcsetattr(cfd, TCSANOW, &tio);
-
   while(1){
-    memset(buf, 0, sizeof(buf));
-    c = read(cfd, buf, PACKET_SIZE);
-    if (c>0){
-      memcpy(data_shmem,buf,c);
-    }else{
-      usleep(10);
+    pack = read_packet(cfd, buf, PACKET_SIZE*2);
+    if( pack != NULL){
+     for(i=0; i<PACKET_SIZE; i++){
+       fprintf(stderr, "%02x ", pack[i]);
+     }
+     fprintf(stderr, "\n");
     }
   }
   close(cfd);
 
 }
 
-
+#endif

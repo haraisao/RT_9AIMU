@@ -5,13 +5,7 @@
  *
  *  License: The MIT Licens
  */
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
+#include "shmem.h"
 
 extern int errno;
 

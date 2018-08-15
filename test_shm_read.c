@@ -9,8 +9,7 @@
 #include <stdio.h>
 #include "shmem.h"
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   imu_data *data_mem; 
 

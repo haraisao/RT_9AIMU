@@ -5,6 +5,10 @@
  *
  *  License: The MIT Licens
  */
+
+#ifndef __SHMEM_H__
+#define __SHMEM_H__
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -12,9 +16,11 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
+#ifndef SHM_ID
 #define SHM_ID	128
+#endif
 
-extern void *map_shared_mem(int id, int len, int create);
+void *map_shared_mem(int id, int len, int create);
 
 typedef struct imu_data{
   unsigned char header[6];
@@ -26,3 +32,4 @@ typedef struct imu_data{
   short mag[3];
 } imu_data;
 
+#endif
