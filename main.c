@@ -16,8 +16,9 @@ main(int argc, char **argv)
   char buf[PACKET_SIZE*2];
   char *pack;
   int i;
+  int next=0;
 
-  imu_data *data_shmem;
+  struct imu_data_shm* _shmem;
 
   signal(SIGINT, sighandler);
 
@@ -27,7 +28,12 @@ main(int argc, char **argv)
     cdev=DEFAULT_PORT;
   } 
 
-  data_shmem = (imu_data *)map_shared_mem(SHM_ID, sizeof(imu_data), 1);
+  _shmem = (struct imu_data_shm *)map_shared_mem(SHM_ID, sizeof(struct imu_data_shm), 1);
+  if (_shmem == NULL){
+   exit(-1);
+  }
+  _shmem->current=0;
+  next=0;
 
   cfd = open_port(cdev);
   if (cfd < 0){
@@ -38,7 +44,9 @@ main(int argc, char **argv)
   while(1){
     pack = read_packet(cfd, buf, PACKET_SIZE*2);
     if (pack != NULL){
-      memcpy(data_shmem, pack,PACKET_SIZE);
+      memcpy(&(_shmem->data[next]), pack,PACKET_SIZE);
+      _shmem->current=next;
+      next = (_shmem->current+1) % 10;
     }else{
       usleep(10);
     }

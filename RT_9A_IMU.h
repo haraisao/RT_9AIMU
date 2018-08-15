@@ -22,7 +22,7 @@
 
 /**/
 #ifndef SHM_ID
-#define SHM_ID	128
+#define SHM_ID	130
 #endif
 
 #ifndef IMU_HEAD
@@ -42,6 +42,10 @@ typedef struct imu_data{
 } imu_data;
 
 
+struct imu_data_shm{
+  int current;
+  struct imu_data data[10];
+};
 
 
 #ifndef EXTERN

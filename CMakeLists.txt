@@ -10,3 +10,9 @@ add_executable(
   serial.c
   shmem.c
 )
+
+add_executable(
+  read_test
+  test_shm_read.c
+  shmem.c
+)

@@ -15,9 +15,13 @@ void *map_shared_mem(int id, int len, int create)
   void *stat;
 
   if(create){
-    shmid=shmget(id, len, IPC_CREAT|0666);
+    shmid=shmget(id, len, IPC_CREAT|IPC_EXCL|0666);
   }else{
     shmid=shmget(id, len, 0666);
+  }
+  if(shmid < 0){
+    fprintf(stderr, "Error shared memory, id=%d\n", shmid);
+    return NULL;
   }
 
   stat=shmat(shmid, NULL, 0666);
