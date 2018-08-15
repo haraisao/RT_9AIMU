@@ -65,7 +65,7 @@ int check_packet(char *buf){
   char *p;
   do{
     p=buf+idx;
-    if (p[0]==0xff && p[1]==0xff && p[2] == 0x52 && p[3]==0x54){
+    if (p[0]==0xff && p[1]==0xff && p[2] == 0x52 && p[3]==0x54 && p[4]==0x39 && p[5]==0x41){
       return idx;
     }
     idx++;
