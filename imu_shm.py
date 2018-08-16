@@ -169,6 +169,26 @@ class ImuShm(object):
       data=self.shm.read(self.imu_data_len * self.max_pool, offset)
       return data
       
+  def get_last_imu_data(self, n, off=0):
+      data=bytes()
+      offset = self.shm_offset['imu_data']
+      cn = (self.get_current() + self.max_pool - off) % self.max_pool
+      for i in range(n):
+        cn = (cn + self.max_pool-1) % self.max_pool
+        data=data+self.shm.read(self.imu_data_len, offset + cn* self.imu_data_len)
+      return data
+
+  def get_value_from_data(self, n, data, name, typ='h'):
+      imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
+      off = n * imu_data_off+ self.imu_offset[name]
+      if typ == 'B' :
+        res=struct.unpack(typ, data[off:off+1])[0]
+      elif typ == 'i' or typ == 'I':
+        res=struct.unpack(typ, data[off:off+4])[0]
+      else:
+        res=struct.unpack(typ, data[off:off+2])[0]
+      return res
+
   def get_acc_from_data(self, n, data):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       off = n * imu_data_off+ self.imu_offset['acc']

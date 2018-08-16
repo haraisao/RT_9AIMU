@@ -10,6 +10,7 @@
 #include "RT_9A_IMU.h"
 #include <getopt.h>
 #include <sys/stat.h>
+#include <math.h>
 
 /*
  * Serial port
@@ -74,13 +75,25 @@ void main_loop(char *cdev, struct imu_data_shm* _shmem)
       _shmem->data[next].gyro[1] -= _shmem->gyro_off[1];
       _shmem->data[next].gyro[2] -= _shmem->gyro_off[2];
 
-      _shmem->sp_x += _shmem->data[next].acc[0];
-      _shmem->sp_y += _shmem->data[next].acc[1];
-      _shmem->sp_z += _shmem->data[next].acc[2];
+      if( abs(_shmem->data[next].acc[0]) > 10){
+        _shmem->sp_x += _shmem->data[next].acc[0];
+      }
+      if( abs(_shmem->data[next].acc[1]) > 10){
+       _shmem->sp_y += _shmem->data[next].acc[1];
+      }
+      if( abs(_shmem->data[next].acc[2]) > 10){
+        _shmem->sp_z += _shmem->data[next].acc[2];
+      }
 
+      if(abs( _shmem->data[next].gyro[0] ) > 10){
       _shmem->angle_x += _shmem->data[next].gyro[0];
+      }
+      if(abs( _shmem->data[next].gyro[1] ) > 10){
       _shmem->angle_y += _shmem->data[next].gyro[1];
+      }
+      if(abs( _shmem->data[next].gyro[2] ) > 10){
       _shmem->angle_z += _shmem->data[next].gyro[2];
+      }
 
 
       _shmem->data[next].tv_sec=tv.tv_sec;
