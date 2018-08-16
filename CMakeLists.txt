@@ -13,6 +13,8 @@ add_executable(
 
 add_executable(
   read_test
-  test_shm_read.c
+  shm_read.c
   shmem.c
 )
+
+target_link_libraries( read_test ncurses )

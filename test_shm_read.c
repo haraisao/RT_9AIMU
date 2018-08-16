@@ -60,8 +60,10 @@ int main(int argc, char **argv)
       fprintf(stderr, "current: %d (%d)\n", current, data->timestamp);
       fprintf(stderr, "ACC_Off: %d %d %d \n", _shmem->acc_off[0], _shmem->acc_off[1], _shmem->acc_off[2]);
       fprintf(stderr, "Temp: %f \n", data->templature/340.0 + 35);
+      fprintf(stderr, "Mag: (%.2f, %.2f, %.2f) \n", data->mag[0]*0.3, data->mag[1]*0.3, data->mag[2]*0.3);
 
-      fprintf(stderr, "V: (%.2f, %.2f, %.2f) \n", _shmem->sp_x/2048.0, _shmem->sp_y/2048.0, _shmem->sp_z/2048.0);
+      fprintf(stderr, "Velocity: (%.2f, %.2f, %.2f) \n", _shmem->sp_x/2048.0, _shmem->sp_y/2048.0, _shmem->sp_z/2048.0);
+
 
       fprintf(stderr, "Angle: (%.2f, %.2f, %.2f) \n", _shmem->angle_x/16.4, _shmem->angle_y/16.4, _shmem->angle_z/16.4);
 

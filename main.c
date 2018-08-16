@@ -43,6 +43,58 @@ unsigned short save_pid()
   return (unsigned short)pid;
 }
 
+void main_loop(char *cdev, struct imu_data_shm* _shmem)
+{
+  int pid;
+  char *pack;
+  char buf[PACKET_SIZE*2];
+  struct timeval tv;
+  int next=0;
+
+  cfd = open_port(cdev);
+  if (cfd < 0){
+    fprintf(stderr, "Fail to open %s\n", cdev);
+    exit(-1);
+  }
+  // Save PID
+  pid=save_pid();
+  _shmem->pid = pid;
+
+  // Main loop
+  while(1){
+    pack = read_packet(cfd, buf, PACKET_SIZE*2);
+    if (pack != NULL){
+      gettimeofday(&tv,NULL);
+      memcpy(&(_shmem->data[next]), pack,PACKET_SIZE);
+      _shmem->data[next].acc[0] -= _shmem->acc_off[0];
+      _shmem->data[next].acc[1] -= _shmem->acc_off[1];
+      _shmem->data[next].acc[2] -= _shmem->acc_off[2];
+
+      _shmem->data[next].gyro[0] -= _shmem->gyro_off[0];
+      _shmem->data[next].gyro[1] -= _shmem->gyro_off[1];
+      _shmem->data[next].gyro[2] -= _shmem->gyro_off[2];
+
+      _shmem->sp_x += _shmem->data[next].acc[0];
+      _shmem->sp_y += _shmem->data[next].acc[1];
+      _shmem->sp_z += _shmem->data[next].acc[2];
+
+      _shmem->angle_x += _shmem->data[next].gyro[0];
+      _shmem->angle_y += _shmem->data[next].gyro[1];
+      _shmem->angle_z += _shmem->data[next].gyro[2];
+
+
+      _shmem->data[next].tv_sec=tv.tv_sec;
+      _shmem->data[next].tv_usec=tv.tv_usec;
+      _shmem->current=next;
+      next = (_shmem->current+1) % MAX_POOL;
+    }else{
+      usleep(100);
+    }
+    usleep(10000);
+  }
+  unlink(PID_FILE);
+  close(cfd);
+}
 
 /*
  *  M A I N
@@ -135,7 +187,7 @@ main(int argc, char *argv[])
 
   _shmem->acc_off[0]=0;
   _shmem->acc_off[1]=0;
-  _shmem->acc_off[2]=-2048;
+  _shmem->acc_off[2]=0;
   _shmem->gyro_off[0]=0;
   _shmem->gyro_off[1]=0;
   _shmem->gyro_off[2]=0;
@@ -146,100 +198,13 @@ main(int argc, char *argv[])
    */
   if(daemon_flag == 1){
     if(daemon(0,0) == 0){
-      // Open serial port
-      cfd = open_port(cdev);
-      if (cfd < 0){
-        fprintf(stderr, "Fail to open %s\n", cdev);
-        exit(-1);
-      }
-      // Save PID
-      pid=save_pid();
-      _shmem->pid = pid;
-
-      // Main loop
-      while(1){
-        pack = read_packet(cfd, buf, PACKET_SIZE*2);
-        if (pack != NULL){
-	  gettimeofday(&tv,NULL);
-          memcpy(&(_shmem->data[next]), pack,PACKET_SIZE);
-          _shmem->data[next].tv_sec=tv.tv_sec;
-          _shmem->data[next].tv_usec=tv.tv_usec;
-
-          _shmem->data[next].acc[0] -= _shmem->acc_off[0];
-          _shmem->data[next].acc[1] -= _shmem->acc_off[1];
-          _shmem->data[next].acc[2] -= _shmem->acc_off[2];
-
-          _shmem->data[next].gyro[0] -= _shmem->gyro_off[0];
-          _shmem->data[next].gyro[1] -= _shmem->gyro_off[1];
-          _shmem->data[next].gyro[2] -= _shmem->gyro_off[2];
-
-          _shmem->sp_x += _shmem->data[next].acc[0];
-          _shmem->sp_y += _shmem->data[next].acc[1];
-          _shmem->sp_z += _shmem->data[next].acc[2];
-
-          _shmem->angle_x += _shmem->data[next].gyro[0];
-          _shmem->angle_y += _shmem->data[next].gyro[1];
-          _shmem->angle_z += _shmem->data[next].gyro[2];
-
-          _shmem->current=next;
-          next = (_shmem->current+1) % MAX_POOL;
-        }else{
-          usleep(1000);
-        }
-        usleep(10000);
-      }
-
-      unlink(PID_FILE);
-      close(cfd);
+      main_loop(cdev,  _shmem);
     }else{
       printf("Error : faild to start imud\n");
       return -1;
     }
   }else{
-    // Open serial port
-    cfd = open_port(cdev);
-    if (cfd < 0){
-      fprintf(stderr, "Fail to open %s\n", cdev);
-      exit(-1);
-    }
-    // Save PID
-    pid=save_pid();
-    _shmem->pid = pid;
-
-    // Main loop
-    while(1){
-      pack = read_packet(cfd, buf, PACKET_SIZE*2);
-      if (pack != NULL){
-	gettimeofday(&tv,NULL);
-        memcpy(&(_shmem->data[next]), pack,PACKET_SIZE);
-        _shmem->data[next].acc[0] -= _shmem->acc_off[0];
-        _shmem->data[next].acc[1] -= _shmem->acc_off[1];
-        _shmem->data[next].acc[2] -= _shmem->acc_off[2];
-
-        _shmem->data[next].gyro[0] -= _shmem->gyro_off[0];
-        _shmem->data[next].gyro[1] -= _shmem->gyro_off[1];
-        _shmem->data[next].gyro[2] -= _shmem->gyro_off[2];
-
-        _shmem->sp_x += _shmem->data[next].acc[0];
-        _shmem->sp_y += _shmem->data[next].acc[1];
-        _shmem->sp_z += _shmem->data[next].acc[2];
-
-        _shmem->angle_x += _shmem->data[next].gyro[0];
-        _shmem->angle_y += _shmem->data[next].gyro[1];
-        _shmem->angle_z += _shmem->data[next].gyro[2];
-
-
-        _shmem->data[next].tv_sec=tv.tv_sec;
-        _shmem->data[next].tv_usec=tv.tv_usec;
-        _shmem->current=next;
-        next = (_shmem->current+1) % MAX_POOL;
-      }else{
-        usleep(100);
-      }
-      usleep(10000);
-    }
-    unlink(PID_FILE);
-    close(cfd);
+    main_loop(cdev,  _shmem);
   }
   return 0;
 }
