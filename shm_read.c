@@ -10,11 +10,12 @@
 #include <getopt.h>
 #include <ncurses.h>
 
-void print_data(int current, struct imu_data_shm* _shmem)
+void print_data(int i, int current, struct imu_data_shm* _shmem)
 {
   imu_data *data;
 
   data = &(_shmem->data[current]);
+  mvprintw(1,10, "==== RT-9A IMU (%d)=====", i);
 
   mvprintw(3,10, "current : %4d (%3d)", current, data->timestamp);
 
@@ -47,6 +48,7 @@ int main(int argc, char **argv)
   int prev;
   int n=1;
   int shmid=SHM_ID;
+  char c;
 
   /*
    *  Options....
@@ -85,6 +87,8 @@ int main(int argc, char **argv)
    */
   initscr();
   raw();
+  //cbreak();
+  timeout(0);
   noecho();
 
   for(int i=0; i<n;){
@@ -92,27 +96,16 @@ int main(int argc, char **argv)
     if (current == prev){
       usleep(1000);
     }else{
-      print_data(current,  _shmem);
+      print_data(i, current,  _shmem);
+      c=getch();
+      if (c == 'q') break;
       prev = current;
       i++;
     }
   }
+  timeout(-1);
   mvprintw(13,10, "...End. Please push any key");
   refresh();
   getch();
   endwin();
 }
-
-/*
-{
-	int ch;
-	keypad(stdscr,TRUE);
-	noecho();
-	printw(">");
-	ch=getch();
-	printw("%c", ch);
-	refresh();
-	getch();
-	endwin();
-}
-*/

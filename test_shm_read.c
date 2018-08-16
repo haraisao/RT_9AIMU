@@ -52,8 +52,10 @@ int main(int argc, char **argv)
 
   for(int i=0; i<n;){
     current=_shmem->current;
+
     if (current == prev){
-	    usleep(1000);
+       fprintf(stderr, "-- %d --\n", current);
+       usleep(1000);
     }else{
       data = &(_shmem->data[current]);
 

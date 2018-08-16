@@ -53,8 +53,12 @@ int read_one_packet(int fd, char *buf, int len){
   if (c<0){ return -1; }
   while (c < len){
     c1 = read(fd, buf+c, len-c);
-    if (c1<0){ return -1; }
+    if (c1<0){
+      fprintf(stderr, "read error!\n");
+      return -1;
+    }
     c += c1;
+    fprintf(stderr, "read %d\n", c);
   }
   return c;
 }
@@ -62,12 +66,13 @@ int read_one_packet(int fd, char *buf, int len){
 
 int check_packet(char *buf){
   int idx=0;
-  char *p;
+  unsigned char *p;
   do{
     p=buf+idx;
     if (p[0]==0xff && p[1]==0xff && p[2] == 0x52 && p[3]==0x54 && p[4]==0x39 && p[5]==0x41){
       return idx;
     }
+    fprintf(stderr, " %x %x %x %x \n", p[0],p[1],p[2],p[3]);
     idx++;
   }while(idx<PACKET_SIZE);
 
