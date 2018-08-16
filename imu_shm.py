@@ -47,7 +47,7 @@ import numpy as np
 #  
 
 class ImuShm(object):
-  def __init__(self,id):
+  def __init__(self, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2, 'sp_x': 4, 'sp_y' :6, 'sp_z':8,
             'angle_x': 10, 'angle_y':12, 'angle_z':14, 'acc_off': 16,
@@ -219,5 +219,22 @@ class ImuShm(object):
       res /= float(n)
       return res
 
+  def do_calibration(self, n):
+      self.set_acc_off([0,0,0])
+      self.set_gyro_off([0,0,0])
+      time.sleep(1)
 
+      gyro=np.array([0,0,0], dtype='float')
+      acc=np.array([0,0,0], dtype='float')
+      for x in range(n):
+        acc += self.get_acc_average()
+        gyro += self.get_gyro_average()
+        time.sleep(1)
 
+      gyro /= float(n)
+      acc /= float(n)
+
+      self.set_acc_off(acc)
+      self.set_gyro_off(gyro)
+
+      return
