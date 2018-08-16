@@ -39,16 +39,12 @@ import os
 import signal
 import sysv_ipc
 import struct
+import time
+import numpy as np
 
-# struct imu_data ==> 28+4+4=34 ---> 36
+# struct imu_data ==> 28+4+4=36
 # struct imu_data_shm ==> 4+ 2*12 + 36*100 --> 3628
 #  
-def getshmem(id=130):
-  shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
-  return shm
-
-def get_count(mem):
-    return struct.unpack('I',mem.read(4))
 
 class ImuShm(object):
   def __init__(self,id):
@@ -59,6 +55,8 @@ class ImuShm(object):
     self.imu_data_len=36
     self.imu_offset={'version':6, 'timestamp':7,'acc':8, 'templature':14,
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
+
+    self.max_pool=100
 
   def get_shm_bytes(self, name, size=2):
       return self.shm.read(size, self.shm_offset[name])
@@ -162,7 +160,64 @@ class ImuShm(object):
       off = self.get_imu_data_offset(n) + self.imu_offset['tv_sec']
       return(self.read_int(off), self.read_int(off+4))
  
+  def get_time(self, n):
+      off = self.get_imu_data_offset(n) + self.imu_offset['tv_sec']
+      return(self.read_int(off), self.read_int(off+4))
+ 
+  def get_all_imu_data(self):
+      offset = self.shm_offset['imu_data']
+      data=self.shm.read(self.imu_data_len * self.max_pool, offset)
+      return data
       
+  def get_acc_from_data(self, n, data):
+      imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
+      off = n * imu_data_off+ self.imu_offset['acc']
+      res=[ struct.unpack('h', data[off:off+2])[0],
+            struct.unpack('h', data[off+2:off+4])[0],
+            struct.unpack('h', data[off+4:off+6])[0]]
+      return res
 
-      
+  def get_gyro_from_data(self, n, data):
+      imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
+      off = n * imu_data_off+ self.imu_offset['gyro']
+      res=[ struct.unpack('h', data[off:off+2])[0],
+            struct.unpack('h', data[off+2:off+4])[0],
+            struct.unpack('h', data[off+4:off+6])[0]]
+      return res
+
+  def get_acc_average(self):
+      data = self.get_all_imu_data()
+      res=np.array([0,0,0], dtype='float')
+      for x in range(self.max_pool):
+          res += np.array(self.get_acc_from_data(x,data), dtype='float')
+      res /= float(self.max_pool)
+      return res
+
+  def get_gyro_average(self):
+      data = self.get_all_imu_data()
+      res=np.array([0,0,0], dtype='float')
+      for x in range(self.max_pool):
+          res += np.array(self.get_gyro_from_data(x,data), dtype='float')
+      res /= float(self.max_pool)
+      return res
+
+  def get_gyro_calibration_data(self, n):
+      res=np.array([0,0,0], dtype='float')
+      for x in range(n):
+        res += self.get_gyro_average()
+        time.sleep(1)
+
+      res /= float(n)
+      return res
+
+  def get_acc_calibration_data(self, n):
+      res=np.array([0,0,0], dtype='float')
+      for x in range(n):
+        res += self.get_acc_average()
+        time.sleep(1)
+
+      res /= float(n)
+      return res
+
+
 

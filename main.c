@@ -9,6 +9,7 @@
 #define EXTERN	1
 #include "RT_9A_IMU.h"
 #include <getopt.h>
+#include <sys/stat.h>
 
 /*
  * Serial port
@@ -102,6 +103,11 @@ main(int argc, char *argv[])
 
   if(cdev == NULL){ cdev=DEFAULT_PORT; } 
 
+  struct stat st;
+  if(stat(PID_FILE, &st) == 0){
+    fprintf(stderr, "imud already running.\n");
+    exit(1);
+  }
   /*
    * Set Signal handler
    */
