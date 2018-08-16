@@ -18,7 +18,10 @@
 #include <signal.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/time.h>
 
+#include <errno.h>
+#include <syslog.h>
 
 /**/
 #ifndef SHM_ID
@@ -29,6 +32,9 @@
 #define IMU_HEAD	0xffff52543941
 #define DEFAULT_PORT 	"/dev/ttyACM0"
 #define PACKET_SIZE	28
+#define MAX_POOL	100
+
+#define PID_FILE	"/var/run/imud.pid"
 #endif
 
 typedef struct imu_data{
@@ -39,27 +45,30 @@ typedef struct imu_data{
   short templature;
   short gyro[3];
   short mag[3];
+  int tv_sec;
+  int tv_usec;
 } imu_data;
 
 
 struct imu_data_shm{
-  int current;
-  struct imu_data data[10];
+  unsigned short current;
+  unsigned short pid;
+  short sp_x;
+  short sp_y;
+  short sp_z;
+
+  short angle_x;
+  short angle_y;
+  short angle_z;
+  short acc_off[3];
+  short gyro_off[3];
+
+  struct imu_data data[MAX_POOL];
 };
 
 
 #ifndef EXTERN
 extern int cfd;
-void sighandler(int x);
-
-#else
-static int cfd=0;
-
-void sighandler(int x)
-{
-  close(cfd);
-  exit(0);
-}
 #endif
 
 void *map_shared_mem(int id, int len, int create);
