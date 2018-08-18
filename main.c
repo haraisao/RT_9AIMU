@@ -44,13 +44,15 @@ unsigned short save_pid()
   return (unsigned short)pid;
 }
 
-void main_loop(char *cdev, struct imu_data_shm* _shmem)
+void main_loop(char *cdev, struct imu_data_shm* shm)
 {
   int pid;
   char *pack;
+  struct imu_data *data;
   char buf[PACKET_SIZE*2];
   struct timeval tv;
   int next=0;
+  int prev_t=-1;
 
   cfd = open_port(cdev);
   if (cfd < 0){
@@ -59,47 +61,55 @@ void main_loop(char *cdev, struct imu_data_shm* _shmem)
   }
   // Save PID
   pid=save_pid();
-  _shmem->pid = pid;
+  shm->pid = pid;
 
   // Main loop
   while(1){
     pack = read_packet(cfd, buf, PACKET_SIZE*2);
+
     if (pack != NULL){
+      data = &(shm->data[next]);
       gettimeofday(&tv,NULL);
-      memcpy(&(_shmem->data[next]), pack,PACKET_SIZE);
-      _shmem->data[next].acc[0] -= _shmem->acc_off[0];
-      _shmem->data[next].acc[1] -= _shmem->acc_off[1];
-      _shmem->data[next].acc[2] -= _shmem->acc_off[2];
 
-      _shmem->data[next].gyro[0] -= _shmem->gyro_off[0];
-      _shmem->data[next].gyro[1] -= _shmem->gyro_off[1];
-      _shmem->data[next].gyro[2] -= _shmem->gyro_off[2];
+      memcpy(data, pack,PACKET_SIZE);
 
-      if( abs(_shmem->data[next].acc[0]) > 10){
-        _shmem->sp_x += _shmem->data[next].acc[0];
-      }
-      if( abs(_shmem->data[next].acc[1]) > 10){
-       _shmem->sp_y += _shmem->data[next].acc[1];
-      }
-      if( abs(_shmem->data[next].acc[2]) > 10){
-        _shmem->sp_z += _shmem->data[next].acc[2];
+      /** subtract offsets **/
+      for(int i=0;i<3;i++){
+        data->acc[i]  -= shm->acc_off[i];
+        data->gyro[i] -= shm->gyro_off[i];
       }
 
-      if(abs( _shmem->data[next].gyro[0] ) > 10){
-      _shmem->angle_x += _shmem->data[next].gyro[0];
-      }
-      if(abs( _shmem->data[next].gyro[1] ) > 10){
-      _shmem->angle_y += _shmem->data[next].gyro[1];
-      }
-      if(abs( _shmem->data[next].gyro[2] ) > 10){
-      _shmem->angle_z += _shmem->data[next].gyro[2];
-      }
+      /******/
 
+      if (prev_t > 0){
+      int d = data->timestamp - prev_t;
+      if (d < 0) { d +=256; }
 
-      _shmem->data[next].tv_sec=tv.tv_sec;
-      _shmem->data[next].tv_usec=tv.tv_usec;
-      _shmem->current=next;
-      next = (_shmem->current+1) % MAX_POOL;
+      shm->sp_x += (data->acc[0]*d+50)/100;
+      shm->sp_y += (data->acc[1]*d+50)/100;
+      shm->sp_z += (data->acc[2]*d+50)/100;
+
+      shm->angle_x = (shm->angle_x + (data->gyro[0]*d+50)/100);
+      if (shm->angle_x >2952){ shm->angle_x -= 5904; }
+      else if (shm->angle_x < -2952){ shm->angle_x += 5904; }
+
+      shm->angle_y = (shm->angle_y + (data->gyro[1]*d+50)/100);
+      if (shm->angle_y >2952){ shm->angle_y -= 5904; }
+      else if (shm->angle_y < -2952){ shm->angle_y += 5904; }
+
+      shm->angle_z = (shm->angle_z + (data->gyro[2]*d+50)/100);
+      if (shm->angle_z >2952){ shm->angle_z -= 5904; }
+      else if (shm->angle_z < -2952){ shm->angle_z += 5904; }
+      }
+      prev_t=data->timestamp;
+      /******/
+
+      data->tv_sec=tv.tv_sec;
+      data->tv_usec=tv.tv_usec;
+      shm->current=next;
+
+      //next = (shm->current+1) % MAX_POOL;
+      next = NEXT_N(shm->current, MAX_POOL);
     }else{
       usleep(100);
     }
@@ -185,8 +195,10 @@ main(int argc, char *argv[])
   _shmem = (struct imu_data_shm *)map_shared_mem(shmid,
 		 	 sizeof(struct imu_data_shm), create_flag);
   if (_shmem == NULL){
+   fprintf(stderr, "Error in map_shared_mem\n");
    exit(-1);
   }
+ // Initialize
   _shmem->current=0;
   _shmem->pid=0;
 
@@ -210,7 +222,7 @@ main(int argc, char *argv[])
    * Start Daemon
    */
   if(daemon_flag == 1){
-    if(daemon(0,0) == 0){
+    if(daemon(0,0) == 0){ // run as deamon
       main_loop(cdev,  _shmem);
     }else{
       printf("Error : faild to start imud\n");

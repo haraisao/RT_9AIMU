@@ -37,6 +37,15 @@
 #define PID_FILE	"/var/run/imud.pid"
 #endif
 
+#define NEXT_N(n, mx)	(n+1) % mx
+#define PREV_N(n, mx)	(n+mx-1) % mx
+
+#define ACC_RAW2G(v)	v/2048.0
+#define ACC_RAW2MS(v)	v/2048.0 * 9.8
+#define OMEGA_RAW2DEGS(v)	v/16.4
+#define MAG_RAW2UT(v)	v*0.3
+#define TEMP_RAW2DEG(v)	v/340.0 + 35
+
 typedef struct imu_data{
   unsigned char header[6];
   unsigned char version;

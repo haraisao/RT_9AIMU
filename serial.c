@@ -36,7 +36,8 @@ int open_port(char *dev){
   cfsetospeed(&tio, B57600);
   cfsetispeed(&tio, B57600);
 
-  fd=open(dev, O_RDWR|O_NONBLOCK);
+  //fd=open(dev, O_RDWR|O_NONBLOCK);
+  fd=open(dev, O_RDWR);
 
   if (fd < 0){
     fprintf(stderr, "Fail to open %s\n", dev);

@@ -10,32 +10,49 @@
 #include <getopt.h>
 #include <ncurses.h>
 
-void print_data(int i, int current, struct imu_data_shm* _shmem)
+void print_data(int i, int current, struct imu_data_shm* shm)
 {
   imu_data *data;
 
-  data = &(_shmem->data[current]);
+  data = &(shm->data[current]);
   mvprintw(1,10, "==== RT-9A IMU (%d)=====", i);
 
   mvprintw(3,10, "current : %4d (%3d)", current, data->timestamp);
 
   mvprintw(4,10, "ACC_Off : %4d %4d %4d",
-	  _shmem->acc_off[0], _shmem->acc_off[1], _shmem->acc_off[2]);
-  mvprintw(5,10, "Temp    : %2.3f \n", data->templature/340.0 + 35);
-  mvprintw(6,10, "Mag     : %3.2f, %3.2f, %3.2f",
-	  data->mag[0]*0.3, data->mag[1]*0.3, data->mag[2]*0.3);
+	  shm->acc_off[0], shm->acc_off[1], shm->acc_off[2]);
+  mvprintw(5,10, "GYRO_Off : %4d %4d %4d",
+	  shm->gyro_off[0], shm->gyro_off[1], shm->gyro_off[2]);
 
-  mvprintw(7,10, "Velocity: %3.2f, %3.2f, %3.2f",
-	 _shmem->sp_x/2048.0, _shmem->sp_y/2048.0, _shmem->sp_z/2048.0);
+  mvprintw(6,10, "Temp    : %2.3f     \n", TEMP_RAW2DEG(data->templature));
+  mvprintw(7,10, "Mag     : %+3.2f, %+3.2f, %+3.2f        ",
+	  MAG_RAW2UT(data->mag[0]),
+	  MAG_RAW2UT(data->mag[1]),
+	  MAG_RAW2UT(data->mag[2]) );
+
+  mvprintw(8,10, "Velocity: %+3.2f, %+3.2f, %+3.2f       ",
+	 ACC_RAW2MS(shm->sp_x)/10,
+         ACC_RAW2MS(shm->sp_y)/10,
+         ACC_RAW2MS(shm->sp_z/10));
 
 
-  mvprintw(8,10, "Angle   : %3.2f, %3.2f, %3.2f",
-	 _shmem->angle_x/16.4, _shmem->angle_y/16.4, _shmem->angle_z/16.4);
+  mvprintw(9,10, "Angle   : %+3.2f, %+3.2f, %+3.2f       ",
+	 OMEGA_RAW2DEGS(shm->angle_x),
+         OMEGA_RAW2DEGS(shm->angle_y),
+         OMEGA_RAW2DEGS(shm->angle_z));
 
-  mvprintw(9,10, "Acc     : %4d, %4d, %4d",
+  mvprintw(9,50, "Angle   : %d, %d, %d               ",
+	 shm->angle_x,
+         shm->angle_y,
+         shm->angle_z);
+
+
+  mvprintw(10,10, "Acc     : %+4d, %+4d, %+4d             ",
 	 data->acc[0], data->acc[1] , data->acc[2]);
-  mvprintw(10,10, "Gyro    : %4d, %4d, %4d",
+
+  mvprintw(11,10, "Gyro    : %+4d, %+4d, %+4d           ",
 	 data->gyro[0], data->gyro[1] , data->gyro[2]);
+
   refresh();
   return;
 }
@@ -91,7 +108,7 @@ int main(int argc, char **argv)
   timeout(0);
   noecho();
 
-  for(int i=0; i<n;){
+  for(int i=0; n < 0 || i<n;){
     current=_shmem->current;
     if (current == prev){
       usleep(1000);
