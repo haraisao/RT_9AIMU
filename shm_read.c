@@ -9,6 +9,7 @@
 #include "RT_9A_IMU.h"
 #include <getopt.h>
 #include <ncurses.h>
+#include <math.h>
 
 void print_data(int i, int current, struct imu_data_shm* shm)
 {
@@ -30,11 +31,14 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 	  MAG_RAW2UT(data->mag[1]),
 	  MAG_RAW2UT(data->mag[2]) );
 
+  mvprintw(7,50, "Direction  : %lf          ",
+	  round(atan2(MAG_RAW2UT(data->mag[0]), MAG_RAW2UT(data->mag[1])) / 3.141592 *180));
+
+/*
   mvprintw(8,10, "Velocity: %+3.2f, %+3.2f, %+3.2f       ",
 	 ACC_RAW2MS(shm->sp_x)/10,
          ACC_RAW2MS(shm->sp_y)/10,
          ACC_RAW2MS(shm->sp_z/10));
-
 
   mvprintw(9,10, "Angle   : %+3.2f, %+3.2f, %+3.2f       ",
 	 OMEGA_RAW2DEGS(shm->angle_x),
@@ -45,7 +49,7 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 	 shm->angle_x,
          shm->angle_y,
          shm->angle_z);
-
+*/
 
   mvprintw(10,10, "Acc     : %+4d, %+4d, %+4d             ",
 	 data->acc[0], data->acc[1] , data->acc[2]);
@@ -63,7 +67,7 @@ int main(int argc, char **argv)
   struct imu_data_shm* _shmem;
   int current;
   int prev;
-  int n=1;
+  int n=-1;
   int shmid=SHM_ID;
   char c;
 

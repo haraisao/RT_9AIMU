@@ -80,7 +80,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       }
 
       /******/
-
+#if 0
       if (prev_t > 0){
       int d = data->timestamp - prev_t;
       if (d < 0) { d +=256; }
@@ -102,6 +102,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       else if (shm->angle_z < -2952){ shm->angle_z += 5904; }
       }
       prev_t=data->timestamp;
+#endif
       /******/
 
       data->tv_sec=tv.tv_sec;
@@ -201,7 +202,7 @@ main(int argc, char *argv[])
  // Initialize
   _shmem->current=0;
   _shmem->pid=0;
-
+/*
   _shmem->sp_x=0;
   _shmem->sp_y=0;
   _shmem->sp_z=0;
@@ -209,7 +210,7 @@ main(int argc, char *argv[])
   _shmem->angle_x=0;
   _shmem->angle_y=0;
   _shmem->angle_z=0;
-
+*/
   _shmem->acc_off[0]=0;
   _shmem->acc_off[1]=0;
   _shmem->acc_off[2]=0;

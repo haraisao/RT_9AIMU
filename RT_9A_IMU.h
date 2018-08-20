@@ -62,6 +62,9 @@ typedef struct imu_data{
 struct imu_data_shm{
   unsigned short current;
   unsigned short pid;
+  short acc_off[3];
+  short gyro_off[3];
+/*
   short sp_x;
   short sp_y;
   short sp_z;
@@ -69,8 +72,7 @@ struct imu_data_shm{
   short angle_x;
   short angle_y;
   short angle_z;
-  short acc_off[3];
-  short gyro_off[3];
+*/
 
   struct imu_data data[MAX_POOL];
 };

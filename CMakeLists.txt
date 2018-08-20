@@ -17,4 +17,4 @@ add_executable(
   shmem.c
 )
 
-target_link_libraries( read_test ncurses )
+target_link_libraries( read_test ncurses m)

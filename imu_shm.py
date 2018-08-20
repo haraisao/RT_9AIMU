@@ -20,14 +20,8 @@ typedef struct imu_data{
 
 
 struct imu_data_shm{
-  unsigned int current;
-  short sp_x;
-  short sp_y;
-  short sp_z;
-
-  short angle_x;
-  short angle_y;
-  short angle_z;
+  unsigned short current;
+  unsigned short pid;
   short acc_off[3];
   short gyro_off[3];
 
@@ -49,9 +43,8 @@ import numpy as np
 class ImuShm(object):
   def __init__(self, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
-    self.shm_offset={'current':0, 'pid': 2, 'sp_x': 4, 'sp_y' :6, 'sp_z':8,
-            'angle_x': 10, 'angle_y':12, 'angle_z':14, 'acc_off': 16,
-            'gyro_off':22, 'imu_data' : 28}
+    self.shm_offset={'current':0, 'pid': 2,
+            'acc_off': 4, 'gyro_off':10, 'imu_data' : 16}
     self.imu_data_len=36
     self.imu_offset={'version':6, 'timestamp':7,'acc':8, 'templature':14,
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
