@@ -102,23 +102,23 @@ class ImuShm(object):
           self.shm.write(struct.pack('h', vals[i]),off+i*2)
       return
 
-  def set_gyro_off(self, vals=[0,0,0]):
+  def set_gyro_off(self, vals=[0,0,-2048]):
       off = self.shm_offset['gyro_off']
       for i in range(3):
           self.shm.write(struct.pack('h', vals[i]),off+i*2)
       return
 
-  def set_velocity(self, vals=[0,0,0]):
-      off = self.shm_offset['sp_x']
-      for i in range(3):
-          self.shm.write(struct.pack('h', vals[i]),off+i*2)
-      return
-
-  def set_angle(self, vals=[0,0,0]):
-      off = self.shm_offset['angle_x']
-      for i in range(3):
-          self.shm.write(struct.pack('h', vals[i]),off+i*2)
-      return
+#  def set_velocity(self, vals=[0,0,0]):
+#      off = self.shm_offset['sp_x']
+#      for i in range(3):
+#          self.shm.write(struct.pack('h', vals[i]),off+i*2)
+#      return
+#
+#  def set_angle(self, vals=[0,0,0]):
+#      off = self.shm_offset['angle_x']
+#      for i in range(3):
+#          self.shm.write(struct.pack('h', vals[i]),off+i*2)
+#      return
 
 
   def get_current_imu_data(self):
@@ -247,6 +247,7 @@ class ImuShm(object):
       gyro /= float(n)
       acc /= float(n)
 
+      gyro[2] -= 2048
       self.set_acc_off(acc)
       self.set_gyro_off(gyro)
 
