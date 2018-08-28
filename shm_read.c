@@ -11,11 +11,22 @@
 #include <ncurses.h>
 #include <math.h>
 
+static int prev_t=-1;
+
+void apply_kalman_filter(double x[2], short acc[3], short gyro[3], double P[4], double Ts, double *yaw);
+
+static double x[2]={0.0,0.0};
+static double P[4]={0.0,0.0,0.0,0.0};
+static double yaw=0.0;
+
 void print_data(int i, int current, struct imu_data_shm* shm)
 {
   imu_data *data;
+//  float roll, pitch, yaw;
 
   data = &(shm->data[current]);
+
+
   mvprintw(1,10, "==== RT-9A IMU (%d)=====", i);
 
   mvprintw(3,10, "current : %4d (%3d)", current, data->timestamp);
@@ -24,38 +35,37 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 	  shm->acc_off[0], shm->acc_off[1], shm->acc_off[2]);
   mvprintw(5,10, "GYRO_Off : %4d %4d %4d",
 	  shm->gyro_off[0], shm->gyro_off[1], shm->gyro_off[2]);
+  mvprintw(6,10, "MAG_Off : %4d %4d %4d",
+	  shm->mag_off[0], shm->mag_off[1], shm->mag_off[2]);
 
-  mvprintw(6,10, "Temp    : %2.3f     \n", TEMP_RAW2DEG(data->templature));
-  mvprintw(7,10, "Mag     : %+3.2f, %+3.2f, %+3.2f        ",
+
+  mvprintw(7,10, "Temp    : %2.3f     \n", TEMP_RAW2DEG(data->templature));
+  mvprintw(8,10, "Mag     : %+3.2f, %+3.2f, %+3.2f        ",
 	  MAG_RAW2UT(data->mag[0]),
 	  MAG_RAW2UT(data->mag[1]),
 	  MAG_RAW2UT(data->mag[2]) );
 
-  mvprintw(7,50, "Direction  : %lf          ",
+  mvprintw(9,50, "Direction  : %lf          ",
 	  round(atan2(MAG_RAW2UT(data->mag[0]), MAG_RAW2UT(data->mag[1])) / 3.141592 *180));
 
-/*
-  mvprintw(8,10, "Velocity: %+3.2f, %+3.2f, %+3.2f       ",
-	 ACC_RAW2MS(shm->sp_x)/10,
-         ACC_RAW2MS(shm->sp_y)/10,
-         ACC_RAW2MS(shm->sp_z/10));
+  if (prev_t > 0){
+      int d = data->timestamp - prev_t;
+      if (d < 0) { d +=256; }
+     double Ts = 0.001*d;
+     apply_kalman_filter(x, data->acc, data->gyro, P, Ts, &yaw);
+     mvprintw(10,10, "Angle   : %lf, %lf, %lf               ",
+		 yaw*57.3,x[0]*57.3,x[1]*57.3);
+  }
+  prev_t=data->timestamp;
 
-  mvprintw(9,10, "Angle   : %+3.2f, %+3.2f, %+3.2f       ",
-	 OMEGA_RAW2DEGS(shm->angle_x),
-         OMEGA_RAW2DEGS(shm->angle_y),
-         OMEGA_RAW2DEGS(shm->angle_z));
-
-  mvprintw(9,50, "Angle   : %d, %d, %d               ",
-	 shm->angle_x,
-         shm->angle_y,
-         shm->angle_z);
-*/
-
-  mvprintw(10,10, "Acc     : %+4d, %+4d, %+4d             ",
+  mvprintw(11,10, "Acc     : %+4d, %+4d, %+4d             ",
 	 data->acc[0], data->acc[1] , data->acc[2]);
 
-  mvprintw(11,10, "Gyro    : %+4d, %+4d, %+4d           ",
+  mvprintw(12,10, "Gyro    : %+4d, %+4d, %+4d           ",
 	 data->gyro[0], data->gyro[1] , data->gyro[2]);
+
+  mvprintw(13,10, "Mag    : %+4d, %+4d, %+4d           ",
+	 data->mag[0], data->mag[1] , data->mag[2]);
 
   refresh();
   return;
@@ -112,11 +122,14 @@ int main(int argc, char **argv)
   timeout(0);
   noecho();
 
-  for(int i=0; n < 0 || i<n;){
+  int flag=0;
+  for(int i=0; (n < 0 || i<n) && flag < 1000;){
     current=_shmem->current;
     if (current == prev){
+      flag++;
       usleep(1000);
     }else{
+      flag=0;
       print_data(i, current,  _shmem);
       c=getch();
       if (c == 'q') break;

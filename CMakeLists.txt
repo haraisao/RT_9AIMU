@@ -13,6 +13,7 @@ add_executable(
 
 add_executable(
   read_test
+  Kalman.c 
   shm_read.c
   shmem.c
 )

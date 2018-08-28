@@ -44,7 +44,7 @@ class ImuShm(object):
   def __init__(self, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2,
-            'acc_off': 4, 'gyro_off':10, 'imu_data' : 16}
+            'acc_off': 4, 'gyro_off':10, 'mag_off':16 ,'imu_data' : 24}
     self.imu_data_len=36
     self.imu_offset={'version':6, 'timestamp':7,'acc':8, 'templature':14,
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
@@ -96,6 +96,10 @@ class ImuShm(object):
       off = self.shm_offset['gyro_off']
       return(self.read_short(off), self.read_short(off+2), self.read_short(off+4))
 
+  def get_mag_off(self):
+      off = self.shm_offset['mag_off']
+      return(self.read_short(off), self.read_short(off+2), self.read_short(off+4))
+
   def set_acc_off(self, vals=[0,0,-2048]):
       off = self.shm_offset['acc_off']
       for i in range(3):
@@ -104,6 +108,12 @@ class ImuShm(object):
 
   def set_gyro_off(self, vals=[0,0,-2048]):
       off = self.shm_offset['gyro_off']
+      for i in range(3):
+          self.shm.write(struct.pack('h', vals[i]),off+i*2)
+      return
+
+  def set_mag_off(self, vals=[0,0,0]):
+      off = self.shm_offset['mag_off']
       for i in range(3):
           self.shm.write(struct.pack('h', vals[i]),off+i*2)
       return
@@ -198,6 +208,26 @@ class ImuShm(object):
             struct.unpack('h', data[off+4:off+6])[0]]
       return res
 
+  def get_mag_from_data(self, n, data):
+      imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
+      off = n * imu_data_off+ self.imu_offset['mag']
+      res=[ struct.unpack('h', data[off:off+2])[0],
+            struct.unpack('h', data[off+2:off+4])[0],
+            struct.unpack('h', data[off+4:off+6])[0]]
+      return res
+
+  def get_mag_calibration_data(self, m):
+      arr=[]
+      for x in range(m):
+        time.sleep(1.5)
+        data=self.get_all_imu_data()
+        for n in range(self.max_pool):
+          arr.append(self.get_mag_from_data(n, data))
+
+      max_ar=np.array(arr).max(axis=0)
+      min_ar=np.array(arr).min(axis=0)
+      return max_ar - (max_ar - min_ar)/2
+
   def get_acc_average(self):
       data = self.get_all_imu_data()
       res=np.array([0,0,0], dtype='float')
@@ -247,7 +277,7 @@ class ImuShm(object):
       gyro /= float(n)
       acc /= float(n)
 
-      gyro[2] -= 2048
+      acc[2] += 2048
       self.set_acc_off(acc)
       self.set_gyro_off(gyro)
 

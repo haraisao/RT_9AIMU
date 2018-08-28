@@ -1,0 +1,9 @@
+*.pyc
+*.swp
+dist/
+build/
+old/
+org/
+contrib/
+test/
+*.log

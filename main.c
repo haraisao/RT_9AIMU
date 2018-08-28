@@ -77,6 +77,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       for(int i=0;i<3;i++){
         data->acc[i]  -= shm->acc_off[i];
         data->gyro[i] -= shm->gyro_off[i];
+        data->mag[i] -= shm->mag_off[i];
       }
 
       /******/
@@ -109,12 +110,11 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       data->tv_usec=tv.tv_usec;
       shm->current=next;
 
-      //next = (shm->current+1) % MAX_POOL;
       next = NEXT_N(shm->current, MAX_POOL);
     }else{
       usleep(100);
     }
-    usleep(10000);
+    usleep(9000);
   }
   unlink(PID_FILE);
   close(cfd);
@@ -202,21 +202,19 @@ main(int argc, char *argv[])
  // Initialize
   _shmem->current=0;
   _shmem->pid=0;
-/*
-  _shmem->sp_x=0;
-  _shmem->sp_y=0;
-  _shmem->sp_z=0;
 
-  _shmem->angle_x=0;
-  _shmem->angle_y=0;
-  _shmem->angle_z=0;
-*/
-  _shmem->acc_off[0]=0;
-  _shmem->acc_off[1]=0;
-  _shmem->acc_off[2]=0;
-  _shmem->gyro_off[0]=0;
-  _shmem->gyro_off[1]=0;
-  _shmem->gyro_off[2]=0;
+  _shmem->acc_off[0]=41;
+  _shmem->acc_off[1]=-3;
+  _shmem->acc_off[2]=12;
+
+  _shmem->gyro_off[0]=-7;
+  _shmem->gyro_off[1]=-1;
+  _shmem->gyro_off[2]=-10;
+
+  _shmem->mag_off[0]=52;
+  _shmem->mag_off[1]=16;
+  _shmem->mag_off[2]=76;
+
   next=0;
 
   /*

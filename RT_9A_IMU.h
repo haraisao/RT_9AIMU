@@ -64,15 +64,8 @@ struct imu_data_shm{
   unsigned short pid;
   short acc_off[3];
   short gyro_off[3];
-/*
-  short sp_x;
-  short sp_y;
-  short sp_z;
-
-  short angle_x;
-  short angle_y;
-  short angle_z;
-*/
+  short mag_off[3];
+  short dummy;
 
   struct imu_data data[MAX_POOL];
 };

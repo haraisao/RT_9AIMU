@@ -36,8 +36,8 @@ int open_port(char *dev){
   cfsetospeed(&tio, B57600);
   cfsetispeed(&tio, B57600);
 
-  //fd=open(dev, O_RDWR|O_NONBLOCK);
-  fd=open(dev, O_RDWR);
+  //fd=open(dev, O_RDONLY|O_NONBLOCK);
+  fd=open(dev, O_RDONLY);
 
   if (fd < 0){
     fprintf(stderr, "Fail to open %s\n", dev);
@@ -51,7 +51,10 @@ int open_port(char *dev){
 int read_one_packet(int fd, char *buf, int len){
   int c,c1;
   c=read(fd, buf, len);
-  if (c<0){ return -1; }
+  if (c<0){
+      fprintf(stderr, "read error(%d)!\n", c);
+      return -1;
+  }
   while (c < len){
     c1 = read(fd, buf+c, len-c);
     if (c1<0){
