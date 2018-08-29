@@ -128,7 +128,12 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    
   // calc yaw, 
   /// Yaw = atan2(m[0],m[1]);
-#if 0
+#if 1
+   s_p_wy = sin(x[1])*g[1];
+   c_p_wz = cos(x[1])*g[2];
+   cos_th = cos(x[0]);
+
+   //  estimate X_n+1
   *yaw = *yaw + (s_p_wy + c_p_wz)/cos_th * Ts;
 
   if (*yaw > 3.1415926535){
