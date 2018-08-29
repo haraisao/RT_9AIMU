@@ -17,6 +17,6 @@ void get_valiance(double gain[4], double P[4], double newP[4]);
 void get_kalman_gain(double P[4], double r[4], double gain[4]);
 
 void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
-   double x[2], double *yaw, double P[4], double Ts);
+   double x[2], double *yaw, double P[4], double *p, double Ts);
 
 #endif

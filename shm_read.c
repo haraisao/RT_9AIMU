@@ -20,6 +20,7 @@ static int prev_t=-1;
 static double x[2]={0.0,0.0};  // pitch, roll
 static double yaw=0.0; 
 static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
+static double p=0.0; 
 
 /*
 
@@ -54,15 +55,18 @@ void print_data(int i, int current, struct imu_data_shm* shm)
   mvprintw(10,50,"Direction (v) : %lf          ",
 		    round(atan2(mz, sqrt(mx*mx+my*my)) *57.3));
 
+
  //// Apply Kalman filter to estimate the posture.
   if (prev_t > 0){
      d = data->timestamp - prev_t;
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
-     apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, Ts);
+     apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts);
      mvprintw(12,10, "Angle   : %lf, %lf, %lf               ",
 		 yaw*57.3,x[0]*57.3,x[1]*57.3);
      mvprintw(12,60, "Ts  : %lf          ", Ts);
+  }else{
+//     yaw = atan2(mx, my);
   }
   /////
   prev_t=data->timestamp;

@@ -50,20 +50,23 @@ void get_kalman_gain(double P[4], double r[4], double gain[4]){
   Apply Kalman filter.
 */
 void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
-		  double x[2], double *yaw,  double P[4], double Ts)
+		  double x[2], double *yaw,  double P[4], double *p, double Ts)
 {
    double x_[2], P_[4], gain[4];
    double s_p_wy, c_p_wy, s_p_wz, c_p_wz, cos_th,tan_th;
 
+   double qy,ry;
    double q[4],r[4];
+   double p_, g_, yaw_;
    int i;
 
    q[0]=q[3]=0.00175 * Ts * Ts;
    q[1]=q[2]=0;
+   qy=0.00175 * Ts * Ts;
 
-   r[0]=r[3]= Ts * Ts;
+   r[0]=r[3]=Ts * Ts;
    r[1]=r[2]=0;
-
+   ry=1.0*Ts * Ts;
 
    /// Convert physical values
    double g[3];
@@ -91,6 +94,8 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    x_[0]=x[0] + (s_p_wy-c_p_wz)*Ts;
    x_[1]=x[1] + (g[0] + (c_p_wy + s_p_wz)*tan_th)*Ts;
 
+   yaw_ = *yaw + (s_p_wy + c_p_wz)/cos_th * Ts;
+
    //  calc pre variance
    double v1, v2, v3, v4;
    v1 = (s_p_wy + c_p_wz)*Ts;
@@ -103,9 +108,13 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    P_[2] = (P[0] - P[1]*v1)*v3 + (P[2] -P[3]*v1)*v4 + q[2];
    P_[3] = (P[0]*v3 + P[1]*v4 + P[2]*v4)*v3 +P[3]*v4*v4 + q[3];
 
+   p_ = *p + qy;
+
    // calc Kalman gain
    get_kalman_gain(P_, r, gain);
+   g_ = p_ / (p_+ry);
 
+   ///// get new estimatuins
    double y[2];
    get_angle_from_acc(a, y);
    y[0] -= x_[0];
@@ -119,14 +128,22 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    
   // calc yaw, 
   /// Yaw = atan2(m[0],m[1]);
+#if 0
   *yaw = *yaw + (s_p_wy + c_p_wz)/cos_th * Ts;
-
 
   if (*yaw > 3.1415926535){
     *yaw -= 3.1415926535*2;
   }else if (*yaw < -3.1415926535){
     *yaw += 3.1415926535*2;
   }
+#else
+  double yy;
+  yy = atan2(mag[0], mag[1]) - yaw_;
+  
+  *yaw = *yaw + g_ * yy;
+  *p = (1 - g_) * p_;
+
+#endif
     
   return;
 }
