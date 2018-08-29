@@ -7,30 +7,34 @@
  */
 
 #include "RT_9A_IMU.h"
+#include "Kalman.h"
 #include <getopt.h>
 #include <ncurses.h>
 #include <math.h>
 
+/*
+  global variables
+*/
 static int prev_t=-1;
 
-void apply_kalman_filter(double x[2], short acc[3], short gyro[3], short mag[3], double P[4], double Ts, double *yaw);
+static double x[2]={0.0,0.0};  // pitch, roll
+static double yaw=0.0; 
+static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
 
-static double x[2]={0.0,0.0};
-static double P[4]={0.0,0.0,0.0,0.0};
-static double yaw=0.0;
+/*
 
+*/
 void print_data(int i, int current, struct imu_data_shm* shm)
 {
   imu_data *data;
-//  float roll, pitch, yaw;
+  int d;
+  double Ts;
+  float mx, my, mz;
 
   data = &(shm->data[current]);
 
-
   mvprintw(1,10, "==== RT-9A IMU (%d)=====", i);
-
   mvprintw(3,10, "current : %4d (%3d)", current, data->timestamp);
-
   mvprintw(4,10, "ACC_Off : %4d %4d %4d",
 	  shm->acc_off[0], shm->acc_off[1], shm->acc_off[2]);
   mvprintw(5,10, "GYRO_Off : %4d %4d %4d",
@@ -38,30 +42,27 @@ void print_data(int i, int current, struct imu_data_shm* shm)
   mvprintw(6,10, "MAG_Off : %4d %4d %4d",
 	  shm->mag_off[0], shm->mag_off[1], shm->mag_off[2]);
 
-
-  float mx, my, mz;
   mx = MAG_RAW2UT(data->mag[0]);
   my = MAG_RAW2UT(data->mag[1]);
   mz = MAG_RAW2UT(data->mag[2]);
 
   mvprintw(7,10, "Temp    : %2.3f     \n", TEMP_RAW2DEG(data->templature));
-  mvprintw(8,10, "Mag     : %+3.2f, %+3.2f, %+3.2f        ",
-	  mx, my, mz);
+  mvprintw(8,10, "Mag     : %+3.2f, %+3.2f, %+3.2f        ", mx, my, mz);
 
-  mvprintw(9,50, "Direction  : %lf          ",
-    round(atan2(mx, my) * 57.3));
+  mvprintw(9,50, "Direction (h) : %lf          ", round(atan2(mx, my) * 57.3));
 
-  mvprintw(10,50, "Direction2  : %lf          ",
-    round(atan2(mz, sqrt(mx*mx+my*my)) *57.3));
+  mvprintw(10,50,"Direction (v) : %lf          ",
+		    round(atan2(mz, sqrt(mx*mx+my*my)) *57.3));
 
  //// Apply Kalman filter to estimate the posture.
   if (prev_t > 0){
-      int d = data->timestamp - prev_t;
-      if (d < 0) { d +=256; }
-     double Ts = 0.01*d;
-     apply_kalman_filter(x, data->acc, data->gyro, data->mag, P, Ts, &yaw);
+     d = data->timestamp - prev_t;
+     if (d < 0) { d +=256; }
+     Ts = 0.01*d;
+     apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, Ts);
      mvprintw(12,10, "Angle   : %lf, %lf, %lf               ",
 		 yaw*57.3,x[0]*57.3,x[1]*57.3);
+     mvprintw(12,60, "Ts  : %lf          ", Ts);
   }
   /////
   prev_t=data->timestamp;
@@ -131,7 +132,9 @@ int main(int argc, char **argv)
   noecho();
 
   int flag=0;
-  for(int i=0; (n < 0 || i<n) && flag < 1000;){
+  int i;
+
+  for(i=0; (n < 0 || i<n) && flag < 1000;){
     current=_shmem->current;
     if (current == prev){
       flag++;

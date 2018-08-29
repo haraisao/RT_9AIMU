@@ -53,6 +53,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
   struct timeval tv;
   int next=0;
   int prev_t=-1;
+  int i;
 
   cfd = open_port(cdev);
   if (cfd < 0){
@@ -74,7 +75,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       memcpy(data, pack,PACKET_SIZE);
 
       /** subtract offsets **/
-      for(int i=0;i<3;i++){
+      for(i=0;i<3;i++){
         data->acc[i]  -= shm->acc_off[i];
         data->gyro[i] -= shm->gyro_off[i];
         data->mag[i] -= shm->mag_off[i];
