@@ -8,6 +8,8 @@
 
 #include "RT_9A_IMU.h"
 #include "Kalman.h"
+#include "lib/MadgwickAHRS.h"
+#include "lib/MahonyAHRS.h"
 #include <getopt.h>
 #include <ncurses.h>
 #include <math.h>
@@ -22,6 +24,8 @@ static double yaw=0.0;
 static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
 static double p=0.0; 
 
+Madgwick *mdfilter;
+Mahony *mhfilter;
 /*
 
 */
@@ -30,6 +34,8 @@ void print_data(int i, int current, struct imu_data_shm* shm)
   imu_data *data;
   int d;
   double Ts;
+  float gx, gy, gz;
+  float ax, ay, az;
   float mx, my, mz;
 
   data = &(shm->data[current]);
@@ -42,6 +48,14 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 	  shm->gyro_off[0], shm->gyro_off[1], shm->gyro_off[2]);
   mvprintw(6,10, "MAG_Off : %4d %4d %4d",
 	  shm->mag_off[0], shm->mag_off[1], shm->mag_off[2]);
+
+  gx = OMEGA_RAW2DEGS(data->gyro[0]);
+  gy = OMEGA_RAW2DEGS(data->gyro[1]);
+  gz = OMEGA_RAW2DEGS(data->gyro[2]);
+
+  ax = ACC_RAW2G(data->acc[0]);
+  ay = ACC_RAW2G(data->acc[1]);
+  az = ACC_RAW2G(data->acc[2]);
 
   mx = MAG_RAW2UT(data->mag[0]);
   my = MAG_RAW2UT(data->mag[1]);
@@ -58,26 +72,40 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 
  //// Apply Kalman filter to estimate the posture.
   if (prev_t > 0){
+#if 0
      d = data->timestamp - prev_t;
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
      apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts);
+     double pitch=correct_pitch(x[0], data->acc);
      mvprintw(12,10, "Angle   : %lf, %lf, %lf               ",
-		 yaw*57.3,x[0]*57.3,x[1]*57.3);
+		 yaw*57.3,pitch*57.3,x[1]*57.3);
      mvprintw(12,60, "Ts  : %lf          ", Ts);
-  }else{
-//     yaw = atan2(mx, my);
+#endif
+
+#if 0
+     mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
+     //mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
+     mvprintw(13,10, "Angle(M) : %f, %f, %f               ",
+	 mdfilter->getYaw(),mdfilter->getPitch(),mdfilter->getRoll());
+#endif
+#if 1
+     //mffilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
+     mhfilter->updateIMU(gx, gy, gz, ax, ay, -az);
+     mvprintw(14,10, "Angle(M) : %f, %f, %f               ",
+	 mhfilter->getYaw(),mhfilter->getPitch(),mhfilter->getRoll());
+#endif
   }
   /////
   prev_t=data->timestamp;
 
-  mvprintw(14,10, "Acc     : %+4d, %+4d, %+4d             ",
+  mvprintw(16,10, "Acc     : %+4d, %+4d, %+4d             ",
 	 data->acc[0], data->acc[1] , data->acc[2]);
 
-  mvprintw(15,10, "Gyro    : %+4d, %+4d, %+4d           ",
+  mvprintw(17,10, "Gyro    : %+4d, %+4d, %+4d           ",
 	 data->gyro[0], data->gyro[1] , data->gyro[2]);
 
-  mvprintw(16,10, "Mag    : %+4d, %+4d, %+4d           ",
+  mvprintw(18,10, "Mag    : %+4d, %+4d, %+4d           ",
 	 data->mag[0], data->mag[1] , data->mag[2]);
 
   refresh();
@@ -137,6 +165,9 @@ int main(int argc, char **argv)
 
   int flag=0;
   int i;
+
+  mdfilter = new Madgwick(100, 1.0);
+  mhfilter = new Mahony(100, 1.0, 0.0);
 
   for(i=0; (n < 0 || i<n) && flag < 1000;){
     current=_shmem->current;

@@ -46,6 +46,7 @@
 #define MAG_RAW2UT(v)	v*0.3
 #define TEMP_RAW2DEG(v)	v/340.0 + 35
 
+
 typedef struct imu_data{
   unsigned char header[6];
   unsigned char version;
@@ -75,9 +76,15 @@ struct imu_data_shm{
 extern int cfd;
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void *map_shared_mem(int id, int len, int create);
 
 int open_port(char *dev);
 char *read_packet(int fd, char *buf, int buf_len);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

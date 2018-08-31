@@ -204,13 +204,13 @@ main(int argc, char *argv[])
   _shmem->current=0;
   _shmem->pid=0;
 
-  _shmem->acc_off[0]=41;
-  _shmem->acc_off[1]=-3;
-  _shmem->acc_off[2]=12;
+  _shmem->acc_off[0]=37;
+  _shmem->acc_off[1]=67;
+  _shmem->acc_off[2]=40;
 
-  _shmem->gyro_off[0]=-7;
-  _shmem->gyro_off[1]=-1;
-  _shmem->gyro_off[2]=-10;
+  _shmem->gyro_off[0]=-9;
+  _shmem->gyro_off[1]=3;
+  _shmem->gyro_off[2]=-7;
 
   _shmem->mag_off[0]=52;
   _shmem->mag_off[1]=16;

@@ -45,6 +45,19 @@ void get_kalman_gain(double P[4], double r[4], double gain[4]){
   return;
 }
 
+/*
+ Correct pitch angle
+*/
+double correct_pitch(double pitch, short acc[3])
+{
+  if(acc[2] > 0){
+   if (pitch > 0) return (M_PI - pitch);
+   else return -M_PI-pitch;
+  }
+  return pitch;
+}
+
+
 
 /*
   Apply Kalman filter.
@@ -75,7 +88,7 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
 
    /* for IMU 9A */
    for (i=0; i<3; i++){
-     g[i]=gyro[i]*3.1415926525/2952.0;
+     g[i]=gyro[i]*M_PI/2952.0;
      a[i]=acc[i]/2048.0;
      m[i]=mag[i]*0.3;
    }
@@ -128,27 +141,27 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    
   // calc yaw, 
   /// Yaw = atan2(m[0],m[1]);
-#if 1
-   s_p_wy = sin(x[1])*g[1];
-   c_p_wz = cos(x[1])*g[2];
-   cos_th = cos(x[0]);
 
-   //  estimate X_n+1
+  s_p_wy = sin(x[1])*g[1];
+  c_p_wz = cos(x[1])*g[2];
+  cos_th = cos(x[0]);
+
+  //  estimate X_n+1
   *yaw = *yaw + (s_p_wy + c_p_wz)/cos_th * Ts;
 
-  if (*yaw > 3.1415926535){
-    *yaw -= 3.1415926535*2;
-  }else if (*yaw < -3.1415926535){
-    *yaw += 3.1415926535*2;
+  if (*yaw > 6.28318){
+    *yaw = *yaw - 6.28318;
   }
-#else
-  double yy;
-  yy = atan2(mag[0], mag[1]) - yaw_;
-  
-  *yaw = *yaw + g_ * yy;
-  *p = (1 - g_) * p_;
+  if (*yaw < 0){
+    *yaw = *yaw + 6.28318;
+  }
+/*
+  if (*yaw > M_PI){
+     *yaw -= M_PI_2;
+  }else if (*yaw < -M_PI){
+     *yaw += M_PI_2;
+  }
+*/
 
-#endif
-    
   return;
 }
