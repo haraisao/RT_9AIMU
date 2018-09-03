@@ -10,6 +10,7 @@
 #include "Kalman.h"
 #include "lib/MadgwickAHRS.h"
 #include "lib/MahonyAHRS.h"
+#include "lib/complementary_filter.h"
 #include <getopt.h>
 #include <ncurses.h>
 #include <math.h>
@@ -24,8 +25,14 @@ static double yaw=0.0;
 static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
 static double p=0.0; 
 
+static double vx=0.0; 
+static double vy=0.0; 
+static double vz=0.0; 
+
 Madgwick *mdfilter;
 Mahony *mhfilter;
+imu_tools::ComplementaryFilter *cfilter;
+
 /*
 
 */
@@ -72,29 +79,67 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 
  //// Apply Kalman filter to estimate the posture.
   if (prev_t > 0){
-#if 0
      d = data->timestamp - prev_t;
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
+#if 1
      apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts);
      double pitch=correct_pitch(x[0], data->acc);
-     mvprintw(12,10, "Angle   : %lf, %lf, %lf               ",
+
+     mvprintw(11,10, "Angle   : %lf, %lf, %lf               ",
 		 yaw*57.3,pitch*57.3,x[1]*57.3);
-     mvprintw(12,60, "Ts  : %lf          ", Ts);
+     mvprintw(11,60, "Ts  : %lf          ", Ts);
+     double cph, cth, cps, sph, sth, sps;
+     double a_x, a_y, a_z;
+     double roll, yaw1;
+     yaw1 = -yaw ;
+     pitch = -pitch;
+     roll = -x[1];
+     cph=cos(yaw1);
+     sph=sin(yaw1);
+     cth=cos(pitch);
+     sth=sin(pitch);
+     cps=cos(roll);
+     sps=sin(roll);
+     a_x = cph*cth*ax + (cph*sth*sps-sph*cps)*ay + cph*sth*cps*az+sph*sps*az;
+     a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
+     a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
+
+     if(a_x > 0.05 || a_x < -0.05){ vx += a_x*Ts; }
+     if(a_y > 0.05 || a_y < -0.05){ vy += a_y*Ts; }
+     if(a_z > 0.05 || a_z < -0.05){ vz += a_z*Ts; }
+
+     mvprintw(12,10, "Acc  : %lf, %lf, %lf               ", a_x,a_y,a_z);
+     mvprintw(13,10, "Velo  : %lf, %lf, %lf               ", vx,vy,vz);
+     
+
 #endif
 
 #if 0
-     mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
-     //mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
-     mvprintw(13,10, "Angle(M) : %f, %f, %f               ",
+     //mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
+     mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
+     mvprintw(12,10, "Angle(M) : %f, %f, %f               ",
 	 mdfilter->getYaw(),mdfilter->getPitch(),mdfilter->getRoll());
+     mvprintw(13,10, "Velocity(M) : %f, %f, %f               ",
+	 mdfilter->vz,mdfilter->vy,mdfilter->vz);
 #endif
-#if 1
+
+#if 0
      //mffilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
      mhfilter->updateIMU(gx, gy, gz, ax, ay, -az);
      mvprintw(14,10, "Angle(M) : %f, %f, %f               ",
 	 mhfilter->getYaw(),mhfilter->getPitch(),mhfilter->getRoll());
 #endif
+
+#if 0
+     double r,p,y;
+     //mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
+     cfilter->update(ax, ay, -az, gx, gy, gz, Ts);
+     imu_tools::computeAngles(cfilter->q0_, cfilter->q1_,
+        cfilter->q2_, cfilter->q3_, r, p, y);
+     mvprintw(13,10, "Angle : %f, %f, %f               ", y, p, r);
+#endif
+
   }
   /////
   prev_t=data->timestamp;
@@ -166,8 +211,9 @@ int main(int argc, char **argv)
   int flag=0;
   int i;
 
-  mdfilter = new Madgwick(100, 1.0);
+  mdfilter = new Madgwick(100, 0.6);
   mhfilter = new Mahony(100, 1.0, 0.0);
+  cfilter = new imu_tools::ComplementaryFilter();
 
   for(i=0; (n < 0 || i<n) && flag < 1000;){
     current=_shmem->current;
@@ -179,6 +225,9 @@ int main(int argc, char **argv)
       print_data(i, current,  _shmem);
       c=getch();
       if (c == 'q') break;
+      else if (c == 'v'){
+        vx=vy=vz=0.0; 
+      }
       prev = current;
       i++;
     }

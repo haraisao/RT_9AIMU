@@ -75,11 +75,11 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
 
    q[0]=q[3]=0.00175 * Ts * Ts;
    q[1]=q[2]=0;
-   qy=0.00175 * Ts * Ts;
+   qy=0.0175 * Ts * Ts;
 
    r[0]=r[3]=Ts * Ts;
    r[1]=r[2]=0;
-   ry=1.0*Ts * Ts;
+   ry=0.5*Ts * Ts;
 
    /// Convert physical values
    double g[3];
@@ -141,7 +141,7 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    
   // calc yaw, 
   /// Yaw = atan2(m[0],m[1]);
-
+#if 0
   s_p_wy = sin(x[1])*g[1];
   c_p_wz = cos(x[1])*g[2];
   cos_th = cos(x[0]);
@@ -162,6 +162,18 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
      *yaw += M_PI_2;
   }
 */
+#else
+  double yy;
+  if (yaw_ > M_PI){
+     yaw_ -= M_PI_2;
+  }else if (yaw_ < -M_PI){
+     yaw_ += M_PI_2;
+  }
+
+  yy = atan2(m[0], m[1]) - yaw_;
+  *yaw = *yaw + g_ * yy; 
+  p_ = (1 - g_) * p_;
+#endif
 
   return;
 }

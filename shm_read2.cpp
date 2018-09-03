@@ -62,14 +62,18 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      double pitch=correct_pitch(x[0], data->acc);
      printf("Angle   : %lf, %lf, %lf\n", yaw*57.3,pitch*57.3,x[1]*57.3);
 #endif
-#if 0
-     mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
-     //mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
-     printf( "Angle(M) : %f, %f, %f \n",
+#if 1
+    //for(int i=0;i<4;i++){
+     //mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
+     mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
+     //}
+     printf( "Angle(M) : %f, %f, %f :",
 	 mdfilter->getYaw(),mdfilter->getPitch(),mdfilter->getRoll());
+     printf( " : %f, %f, %f \n",
+	 mdfilter->ax_g,mdfilter->ay_g,mdfilter->az_g);
 
 #endif
-#if 1
+#if 0
      //mffilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
      mffilter->updateIMU(gx, gy, gz, ax, ay, -az);
      printf( "Angle(M) : %f, %f, %f \n",

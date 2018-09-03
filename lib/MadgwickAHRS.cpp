@@ -45,12 +45,16 @@ Madgwick::Madgwick(float sampleFreqDef, float betaDef) {
 	q1 = 0.0f;
 	q2 = 0.0f;
 	q3 = 0.0f;
+	vx = 0.0f;
+	vy = 0.0f;
+	vz = 0.0f;
 	invSampleFreq = 1.0f / sampleFreqDef;
 	anglesComputed = 0;
 }
 
 void Madgwick::update(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz) {
 	float recipNorm;
+	float recipNorm_a;
 	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
 	float hx, hy;
@@ -77,10 +81,10 @@ void Madgwick::update(float gx, float gy, float gz, float ax, float ay, float az
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 
 		// Normalise accelerometer measurement
-		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-		ax *= recipNorm;
-		ay *= recipNorm;
-		az *= recipNorm;
+		recipNorm_a = invSqrt(ax * ax + ay * ay + az * az);
+		ax *= recipNorm_a;
+		ay *= recipNorm_a;
+		az *= recipNorm_a;
 
 		// Normalise magnetometer measurement
 		recipNorm = invSqrt(mx * mx + my * my + mz * mz);
@@ -148,6 +152,19 @@ void Madgwick::update(float gx, float gy, float gz, float ax, float ay, float az
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+
+
+	ax_g = ((q0q0+q1q1-0.5)*ax+(q1q2-q0q2)*ay+(q1q3+q1q2)*az) / recipNorm_a;
+	ax_g *= invSampleFreq;
+	ay_g = ((q1q2+q0q3)*ax+(q0q0+q1q1-0.5)*ay+(q2q3-q0q1)*az) / recipNorm_a;
+	ay_g *= invSampleFreq;
+	az_g = ((q1q3-q0q2)*ax+(q2q3+q0q1)*ay+(q0q0+q3q3-0.5)*az) / recipNorm_a -0.5f;
+	az_g *= invSampleFreq;
+
+        vx += ax_g;
+        vy += ay_g;
+        vz += az_g;
+
 	anglesComputed = 0;
 }
 
@@ -156,6 +173,7 @@ void Madgwick::update(float gx, float gy, float gz, float ax, float ay, float az
 
 void Madgwick::updateIMU(float gx, float gy, float gz, float ax, float ay, float az) {
 	float recipNorm;
+	float recipNorm_a;
 	float s0, s1, s2, s3;
 	float qDot1, qDot2, qDot3, qDot4;
 	float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 ,_8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
@@ -175,10 +193,10 @@ void Madgwick::updateIMU(float gx, float gy, float gz, float ax, float ay, float
 	if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 
 		// Normalise accelerometer measurement
-		recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-		ax *= recipNorm;
-		ay *= recipNorm;
-		az *= recipNorm;
+		recipNorm_a = invSqrt(ax * ax + ay * ay + az * az);
+		ax *= recipNorm_a;
+		ay *= recipNorm_a;
+		az *= recipNorm_a;
 
 		// Auxiliary variables to avoid repeated arithmetic
 		_2q0 = 2.0f * q0;
@@ -225,6 +243,29 @@ void Madgwick::updateIMU(float gx, float gy, float gz, float ax, float ay, float
 	q1 *= recipNorm;
 	q2 *= recipNorm;
 	q3 *= recipNorm;
+
+	q0q0 = q0 * q0;
+	double q0q1 = q0 * q1;
+	double q0q2 = q0 * q2;
+	double q0q3 = q0 * q3;
+	q1q1 = q1 * q1;
+	double q1q2 = q1 * q2;
+	double q1q3 = q1 * q3;
+	q2q2 = q2 * q2;
+	double q2q3 = q2 * q3;
+	q3q3 = q3 * q3;
+
+	ax_g = ((q0q0+q1q1-0.5)*ax+(q1q2-q0q2)*ay+(q1q3+q1q2)*az) / recipNorm_a;
+	ax_g *= invSampleFreq;
+	ay_g = ((q1q2+q0q3)*ax+(q0q0+q1q1-0.5)*ay+(q2q3-q0q1)*az) / recipNorm_a;
+	ay_g *= invSampleFreq;
+	az_g = ((q1q3-q0q2)*ax+(q2q3+q0q1)*ay+(q0q0+q3q3-0.5)*az) / recipNorm_a -0.5f;
+	az_g *= invSampleFreq;
+
+        vx += ax_g;
+        vy += ay_g;
+        vz += az_g;
+
 	anglesComputed = 0;
 }
 
@@ -247,15 +288,9 @@ float Madgwick::invSqrt(float x) {
 
 void Madgwick::computeAngles()
 {
-#if 1
 	roll = atan2f(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
 	pitch = asinf(-2.0f * (q1*q3 - q0*q2));
 	yaw = atan2f(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
-#else
-	roll = atan2f(q2*q3 - q0*q1, 0.5f - q1*q1 - q2*q2);
-	pitch = asinf(-2.0f * (q1*q3 - q0*q2));
-	yaw = atan2f(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
-#endif
 	anglesComputed = 1;
 }
 

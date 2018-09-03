@@ -32,12 +32,16 @@ private:
     float roll;
     float pitch;
     float yaw;
+
     char anglesComputed;
     void computeAngles();
 
 //-------------------------------------------------------------------------------------------
 // Function declarations
 public:
+    float ax_g, ay_g, az_g;
+    float vx, vy, vz;
+
     Madgwick(float sampleFreq, float bateFlag);
     void begin(float sampleFrequency) { invSampleFreq = 1.0f / sampleFrequency; }
     void update(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);

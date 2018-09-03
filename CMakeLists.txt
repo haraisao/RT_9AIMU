@@ -18,6 +18,7 @@ add_executable(
   shmem.c
   lib/MadgwickAHRS.cpp
   lib/MahonyAHRS.cpp
+  lib/complementary_filter.cpp
 )
 
 add_executable(
