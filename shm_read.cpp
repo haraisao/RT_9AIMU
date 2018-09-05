@@ -11,6 +11,7 @@
 #include "lib/MadgwickAHRS.h"
 #include "lib/MahonyAHRS.h"
 #include "lib/complementary_filter.h"
+#include "lib/my_filter.h"
 #include <getopt.h>
 #include <ncurses.h>
 #include <math.h>
@@ -29,9 +30,24 @@ static double vx=0.0;
 static double vy=0.0; 
 static double vz=0.0; 
 
+static double dx=0.0; 
+static double dy=0.0; 
+static double dz=0.0; 
+
+FILE *log_fd=NULL;
+FILE *log_pose_fd=NULL;
+
+struct timeval start_tv;
+
 Madgwick *mdfilter;
 Mahony *mhfilter;
 imu_tools::ComplementaryFilter *cfilter;
+
+MyFilter *myfilter_ax;
+MyFilter *myfilter_ay;
+MyFilter *myfilter_az;
+
+int record_time=0;
 
 /*
 
@@ -105,14 +121,52 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
      a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
 
+     record_time++;
+     if (log_pose_fd){
+       fprintf(log_pose_fd, "%d %d ",record_time, data->timestamp);
+       fprintf(log_pose_fd, "%lf, %lf, %lf ", yaw*57.3,pitch*57.3,x[1]*57.3);
+       fprintf(log_pose_fd, "%lf, %lf, %lf\n", a_x,a_y,a_z);
+     }
+
+     double acc_mag,acc_mag1;
+     acc_mag = sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+     acc_mag1 = myfilter_ax->fitFilter(acc_mag);
+
+//     a_x =  myfilter_ax->fitFilter(a_x);
+//     a_y =  myfilter_ay->fitFilter(a_y);
+//     a_z =  myfilter_az->fitFilter(a_z);
+
+
+#if 0
      if(a_x > 0.05 || a_x < -0.05){ vx += a_x*Ts; }
      if(a_y > 0.05 || a_y < -0.05){ vy += a_y*Ts; }
      if(a_z > 0.05 || a_z < -0.05){ vz += a_z*Ts; }
+#else
+ //    if(fabs(a_x) < 0.01){ a_x=0.0; }
+ //    if(fabs(a_y) < 0.01){ a_y=0.0; }
+ //    if(fabs(a_z) < 0.01){ a_z=0.0; }
+     //if(fabs(acc_mag) > 0.05)
+     {
+       vx += a_x*Ts*9.8; 
+       vy += a_y*Ts*9.8; 
+       vz += a_z*Ts*9.8; 
+       if(fabs(vx) < 0.005) { vx=0.0;}
+       if(fabs(vy) < 0.005) { vy=0.0;}
+       if(fabs(vz) < 0.005) { vz=0.0;}
 
-     mvprintw(12,10, "Acc  : %lf, %lf, %lf               ", a_x,a_y,a_z);
-     mvprintw(13,10, "Velo  : %lf, %lf, %lf               ", vx,vy,vz);
+//       dx=dx + a_x*a_x*Ts * 4.9 * sign(a_x);
+//       dy=dy+ a_y*a_y*Ts * 4.9 * sign(a_y);
+//       dz=dz+ a_z*a_z*Ts * 4.9 * sign(a_z);
+     }
+       dx=dx+ vx*Ts;
+       dy=dy+ vy*Ts;
+       dz=dz+ vz*Ts;
+#endif
+     mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf, %+lf)  ", a_x,a_y,a_z,acc_mag1, acc_mag);
+     mvprintw(13,10, "Velo  : %+lf, %+lf, %+lf               ", vx,vy,vz);
+     mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
+     //mvprintw(14,10, "Acc_mag : %lf               ", acc_mag);
      
-
 #endif
 
 #if 0
@@ -152,6 +206,8 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 
   mvprintw(18,10, "Mag    : %+4d, %+4d, %+4d           ",
 	 data->mag[0], data->mag[1] , data->mag[2]);
+
+  save_data(log_fd, data, &start_tv);
 
   refresh();
   return;
@@ -214,6 +270,10 @@ int main(int argc, char **argv)
   mdfilter = new Madgwick(100, 0.6);
   mhfilter = new Mahony(100, 1.0, 0.0);
   cfilter = new imu_tools::ComplementaryFilter();
+  myfilter_ax = new MyFilter(0.01, 0);
+  myfilter_ay = new MyFilter(0.01, 0);
+  myfilter_az = new MyFilter(0.01, 0);
+  gettimeofday(&start_tv, NULL);
 
   for(i=0; (n < 0 || i<n) && flag < 1000;){
     current=_shmem->current;
@@ -227,6 +287,15 @@ int main(int argc, char **argv)
       if (c == 'q') break;
       else if (c == 'v'){
         vx=vy=vz=0.0; 
+        dx=dy=dz=0.0; 
+      }else if (c == 's'){
+        record_time=0;
+        log_fd=open_logfile("logs","imu_data");
+        log_pose_fd=open_logfile("logs","pose_data");
+
+      }else if (c == 'e'){
+        close_logfile(log_fd);
+        close_logfile(log_pose_fd);
       }
       prev = current;
       i++;

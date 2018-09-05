@@ -16,6 +16,7 @@ add_executable(
   Kalman.c 
   shm_read.cpp
   shmem.c
+  lib/my_filter.cpp
   lib/MadgwickAHRS.cpp
   lib/MahonyAHRS.cpp
   lib/complementary_filter.cpp

@@ -80,6 +80,9 @@ extern int cfd;
 extern "C" {
 #endif
 void *map_shared_mem(int id, int len, int create);
+FILE *open_logfile(const char *dirname, const char *name);
+void close_logfile(FILE *fd);
+void save_data(FILE *fd, imu_data *data, struct timeval *tv);
 
 int open_port(char *dev);
 char *read_packet(int fd, char *buf, int buf_len);
