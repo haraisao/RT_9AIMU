@@ -1,18 +1,21 @@
 /*
+  Butterworth filter
 
+  Copyright(C) 2018 Isao Hara.
+  All right reserved.
 */
 #include "butter.h"
 
 ButterFilter::ButterFilter(int n, double Wn, int type)
 {
-  rank=n+1;
-  xv = new double[ rank ];
-  yv = new double[ rank ];
+  order=n;
+  xv = new double[ n+1 ];
+  yv = new double[ n+1 ];
   
-  ax = new double[ rank ];
-  by = new double[ rank ];
+  ax = new double[ n+1 ];
+  by = new double[ n+1 ];
 
-  for(int i; i<rank; i++){
+  for(int i; i <= order; i++){
     xv[i] = 0.0;
     yv[i] = 0.0;
     ax[i] = 0.0;
@@ -31,14 +34,14 @@ void ButterFilter::genLowPass(double Wn)
   //Lowpass
   QcWarp = 1.0/tan( M_PI_DIV_2 * Wn);
 
-  if (rank == 2){
+  if (order == 1){
     gain = 1 / (1 + QcWarp);
     by[0] = 1;
     by[1] = (1 - QcWarp) * gain;
     ax[0] = 1 * gain;
     ax[1] = 1 * gain;
 
-  }else if (rank == 3){
+  }else if (order == 2){
     gain = 1 / (1 + SQRT2 * QcWarp + QcWarp*QcWarp);
 
     by[0] = 1;
@@ -55,14 +58,14 @@ void ButterFilter::genHighPass(double Wn)
   //Highpass
   QcWarp = tan( M_PI_DIV_2 * Wn);
 
-  if (rank == 2){
+  if (order == 1){
     gain = 1 / (1 + QcWarp);
     by[0] = 1;
     by[1] = (QcWarp -1) * gain;
     ax[0] = 1 * gain;
     ax[1] = -1 * gain;
 
-  }else if (rank == 3){
+  }else if (order == 2){
     gain = 1 / (1 + SQRT2 * QcWarp + (QcWarp*QcWarp));
 
     by[0] = 1;
@@ -79,13 +82,13 @@ ButterFilter::showFilter(){
   int i;
 
   printf("\nax: ");
-  for(i=0;i<rank;i++){ 
+  for(i=0;i <= order;i++){ 
     printf("%2.8lf ", ax[i]);
   }
   printf("\n");
 
   printf("by: ");
-  for(i=0;i<rank;i++){ 
+  for(i=0;i <= order;i++){ 
     printf("%2.8lf ", by[i]);
   }
   printf("\n");
@@ -96,7 +99,7 @@ ButterFilter::showFilter(){
 double
 ButterFilter::fitFilter(double val){
   int i;
-  for(i=1; i<rank;i++){
+  for(i=1; i <= order;i++){
     xv[i] = xv[i-1];
     yv[i] = yv[i-1];
   }
@@ -104,7 +107,7 @@ ButterFilter::fitFilter(double val){
   
   yv[0] = ax[0]*xv[0];
 
-  for(i=1; i<rank;i++){
+  for(i=1; i <= order;i++){
     yv[0] = + ax[i]*xv[i] - by[i] *yv[i];
   }
 

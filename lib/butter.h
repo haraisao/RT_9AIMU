@@ -1,5 +1,6 @@
 /*
-
+  Copyright(C) 2018 Isao Hara.
+  All right reserved.
 
 */
 #ifndef __BUTTER_FILTER_H__
@@ -14,7 +15,7 @@
 class ButterFilter
 {
 public:
-  int rank;
+  int order;
   double *xv;
   double *yv;
 
