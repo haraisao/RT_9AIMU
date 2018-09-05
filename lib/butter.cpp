@@ -99,16 +99,15 @@ ButterFilter::showFilter(){
 double
 ButterFilter::fitFilter(double val){
   int i;
-  for(i=1; i <= order;i++){
+  for(i=order; i > 0;i--){
     xv[i] = xv[i-1];
     yv[i] = yv[i-1];
   }
   xv[0] = val;
   
   yv[0] = ax[0]*xv[0];
-
   for(i=1; i <= order;i++){
-    yv[0] += ax[i]*xv[i] - by[i] *yv[i];
+    yv[0] += (ax[i]*xv[i] - by[i]*yv[i]);
   }
 
   return yv[0];
