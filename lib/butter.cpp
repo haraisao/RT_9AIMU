@@ -108,7 +108,7 @@ ButterFilter::fitFilter(double val){
   yv[0] = ax[0]*xv[0];
 
   for(i=1; i <= order;i++){
-    yv[0] = + ax[i]*xv[i] - by[i] *yv[i];
+    yv[0] += ax[i]*xv[i] - by[i] *yv[i];
   }
 
   return yv[0];
