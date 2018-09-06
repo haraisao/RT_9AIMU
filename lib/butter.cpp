@@ -97,7 +97,7 @@ ButterFilter::showFilter(){
 
 
 double
-ButterFilter::fitFilter(double val){
+ButterFilter::lfilter(double val){
   int i;
   for(i=order; i > 0;i--){
     xv[i] = xv[i-1];

@@ -33,7 +33,7 @@ public:
 
   void showFilter();
 
-  double fitFilter(double val);
+  double lfilter(double val);
 
 };
 
