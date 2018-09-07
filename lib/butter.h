@@ -12,28 +12,42 @@
 #define SQRT2  1.4142135623730950488
 #define M_PI_DIV_2  M_PI*0.5
 
+/*
+  Butterworth filter
+*/
 class ButterFilter
 {
 public:
   int order;
+  double Wn;
+  const char *filter_type;
+
   double *xv;
   double *yv;
 
-  double *by;
-  double *ax;
+  double *ay;
+  double *bx;
 
 
-  double QcWarp;
+  double QcW;
   double gain;
 
 
   ButterFilter(int n, double Wn, int type);
+  ~ButterFilter(){
+    delete xv;
+    delete yv;
+    delete ay;
+    delete bx;
+  };
+
   void genLowPass(double Wn);
   void genHighPass(double Wn);
 
   void showFilter();
 
   double lfilter(double val);
+  double *filtfilt(double *vals, int n);
 
 };
 
