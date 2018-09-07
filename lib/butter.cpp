@@ -119,6 +119,28 @@ void ButterFilter::genLowPass(double Wn)
     ay[4] = (5 -3*c1*QcW +  c2*QcW_2 +  c3*QcW_3 -3*c4*QcW_4 + 5*QcW_5) * gain;
     ay[5] = (1 -  c1*QcW +  c2*QcW_2 -  c3*QcW_3 +  c4*QcW_4 -   QcW_5) * gain;
 
+  }else if (order == 6){
+    double c1,c2,c3,c4,c5;
+    double QcW_2 = QcW*QcW;
+    double QcW_3 = QcW_2*QcW;
+    double QcW_4 = QcW_3*QcW;
+    double QcW_5 = QcW_4*QcW;
+    double QcW_6 = QcW_5*QcW;
+
+    c1 = SQRT2 + sqrt(6);
+    c2 = 4+2*sqrt(3);
+    c3 = 3*SQRT2 + 2*sqrt(6);
+    c4 = 4+2*sqrt(3);
+    c5 = SQRT2 + sqrt(6);
+
+    gain = 1/(1+c1*QcW+c2*QcW_2+c3*QcW_3+c4*QcW_4+c5*QcW_5+QcW_6);
+    ay[1] = (6+4*c1*QcW+2*c2*QcW_2-2*c4*QcW_4-4*c5*QcW_5-6*QcW_6)*gain;
+    ay[2] = (15+5*c1*QcW-c2*QcW_2-3*c3*QcW_3-c4*QcW_4+5*c5*QcW_5+15*QcW_6)*gain;
+    ay[3] = (20-4*c2*QcW_2+4*c4*QcW_4-20*QcW_6)*gain;
+    ay[4] = (15-5*c1*QcW-c2*QcW_2+3*c3*QcW_3-c4*QcW_4-5*c5*QcW_5+15*QcW_6)*gain;
+    ay[5] = (6-4*c1*QcW+2*c2*QcW_2-2*c4*QcW_4+4*c5*QcW_5-6*QcW_6)*gain;
+    ay[6] = (1-c1*QcW+c2*QcW_2-c3*QcW_3+c4*QcW_4-c5*QcW_5+QcW_6)*gain;
+
   }
 
   for(int i=0; i <= order; i++){
@@ -192,6 +214,28 @@ void ButterFilter::genHighPass(double Wn)
     ay[3] = (-10+2*c1*QcW +2*c2*QcW_2 -2*c3*QcW_3 -2*c4*QcW_4 +10*QcW_5) * gain;
     ay[4] = ( 5 -3*c1*QcW +  c2*QcW_2 +  c3*QcW_3 -3*c4*QcW_4 + 5*QcW_5) * gain;
     ay[5] = (-1 +  c1*QcW -  c2*QcW_2 +  c3*QcW_3 -  c4*QcW_4 +   QcW_5) * gain;
+
+  }else if (order == 6){
+    double c1,c2,c3,c4,c5;
+    double QcW_2 = QcW*QcW;
+    double QcW_3 = QcW_2*QcW;
+    double QcW_4 = QcW_3*QcW;
+    double QcW_5 = QcW_4*QcW;
+    double QcW_6 = QcW_5*QcW;
+
+    c1 = SQRT2 + sqrt(6);
+    c2 = 4+2*sqrt(3);
+    c3 = 3*SQRT2 + 2*sqrt(6);
+    c4 = 4+2*sqrt(3);
+    c5 = SQRT2 + sqrt(6);
+
+    gain = 1/(1+c1*QcW+c2*QcW_2+c3*QcW_3+c4*QcW_4+c5*QcW_5+QcW_6);
+    ay[1] = (-6-4*c1*QcW-2*c2*QcW_2+2*c4*QcW_4+4*c5*QcW_5+6*QcW_6)*gain;
+    ay[2] = (15+5*c1*QcW-c2*QcW_2-3*c3*QcW_3-c4*QcW_4+5*c5*QcW_5+15*QcW_6)*gain;
+    ay[3] = (-20+4*c2*QcW_2-4*c4*QcW_4+20*QcW_6)*gain;
+    ay[4] = (15-5*c1*QcW-c2*QcW_2+3*c3*QcW_3-c4*QcW_4-5*c5*QcW_5+15*QcW_6)*gain;
+    ay[5] = (-6+4*c1*QcW-2*c2*QcW_2+2*c4*QcW_4-4*c5*QcW_5+6*QcW_6)*gain;
+    ay[6] = (1-c1*QcW+c2*QcW_2-c3*QcW_3+c4*QcW_4-c5*QcW_5+QcW_6)*gain;
 
   }
 
