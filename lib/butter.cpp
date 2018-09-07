@@ -44,10 +44,10 @@ ButterFilter::ButterFilter(int n, double Wn, int type)
   }
   
   if (type == 1){
-    filter_type="Low-pass";
+    filter_type="High-pass";
     genHighPass(Wn);
   }else{
-    filter_type="High-pass";
+    filter_type="Low-pass";
     genLowPass(Wn);
   }
 }
@@ -100,6 +100,24 @@ void ButterFilter::genLowPass(double Wn)
     ay[2] = (6           -2*c2*QcW_2             +6*QcW_4) * gain;
     ay[3] = (4 -2*c1*QcW             +2*c3*QcW_3 -4*QcW_4) * gain;
     ay[4] = (1 -  c1*QcW +  c2*QcW_2 -  c3*QcW_3 +  QcW_4) * gain;
+
+  }else if (order == 5){
+    double c1,c2,c3,c4;
+    double QcW_2 = QcW*QcW;
+    double QcW_3 = QcW_2*QcW;
+    double QcW_4 = QcW_3*QcW;
+    double QcW_5 = QcW_4*QcW;
+
+    c1 = c4 = 1+sqrt(5);
+    c2 = c3 = c1+2; // 3+sqrt(5)
+
+    gain = 1 / (1 + c1*QcW + c2*QcW_2 + c3*QcW_3 + c4*QcW_4 + QcW_5);
+
+    ay[1] = (5 +3*c1*QcW +  c2*QcW_2 -  c3*QcW_3 -3*c4*QcW_4 - 5*QcW_5) * gain;
+    ay[2] = (10+2*c1*QcW -2*c2*QcW_2 -2*c3*QcW_3 +2*c4*QcW_4 +10*QcW_5) * gain;
+    ay[3] = (10-2*c1*QcW -2*c2*QcW_2 +2*c3*QcW_3 +2*c4*QcW_4 -10*QcW_5) * gain;
+    ay[4] = (5 -3*c1*QcW +  c2*QcW_2 +  c3*QcW_3 -3*c4*QcW_4 + 5*QcW_5) * gain;
+    ay[5] = (1 -  c1*QcW +  c2*QcW_2 -  c3*QcW_3 +  c4*QcW_4 -   QcW_5) * gain;
 
   }
 
@@ -157,6 +175,24 @@ void ButterFilter::genHighPass(double Wn)
     ay[3] = (-4 +2*c1*QcW             -2*c3*QcW_3 +4*QcW_4) * gain;
     ay[4] = ( 1 -  c1*QcW +  c2*QcW_2 -  c3*QcW_3 +  QcW_4) * gain;
 
+  }else if (order == 5){
+    double c1,c2,c3,c4;
+    double QcW_2 = QcW*QcW;
+    double QcW_3 = QcW_2*QcW;
+    double QcW_4 = QcW_3*QcW;
+    double QcW_5 = QcW_4*QcW;
+
+    c1 = c4 = 1+sqrt(5);
+    c2 = c3 = c1+2; // 3+sqrt(5)
+
+    gain = 1 / (1 + c1*QcW + c2*QcW_2 + c3*QcW_3 + c4*QcW_4 + QcW_5);
+
+    ay[1] = (-5 -3*c1*QcW -  c2*QcW_2 +  c3*QcW_3 +3*c4*QcW_4 + 5*QcW_5) * gain;
+    ay[2] = ( 10+2*c1*QcW -2*c2*QcW_2 -2*c3*QcW_3 +2*c4*QcW_4 +10*QcW_5) * gain;
+    ay[3] = (-10+2*c1*QcW +2*c2*QcW_2 -2*c3*QcW_3 -2*c4*QcW_4 +10*QcW_5) * gain;
+    ay[4] = ( 5 -3*c1*QcW +  c2*QcW_2 +  c3*QcW_3 -3*c4*QcW_4 + 5*QcW_5) * gain;
+    ay[5] = (-1 +  c1*QcW -  c2*QcW_2 +  c3*QcW_3 -  c4*QcW_4 +   QcW_5) * gain;
+
   }
 
   //  compute ax
@@ -179,13 +215,13 @@ ButterFilter::showFilter(){
   printf("\n=[%s]= Order: %d, Wn: %lf ", filter_type, order, Wn);
   printf("\n  bx: ");
   for(i=0;i <= order;i++){ 
-    printf("%2.8lf ", bx[i]);
+    printf("%e ", bx[i]);
   }
   printf("\n");
 
   printf("  ay: ");
   for(i=0;i <= order;i++){ 
-    printf("%2.8lf ", ay[i]);
+    printf("%e ", ay[i]);
   }
   printf("\n");
   return;
