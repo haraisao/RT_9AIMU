@@ -108,7 +108,7 @@ void ButterFilter::genLowPass(double Wn)
     double QcW_4 = QcW_3*QcW;
     double QcW_5 = QcW_4*QcW;
 
-    c1 = c4 = 1+sqrt(5);
+    c1 = c4 = 1+SQRT5;
     c2 = c3 = c1+2; // 3+sqrt(5)
 
     gain = 1 / (1 + c1*QcW + c2*QcW_2 + c3*QcW_3 + c4*QcW_4 + QcW_5);
@@ -127,11 +127,11 @@ void ButterFilter::genLowPass(double Wn)
     double QcW_5 = QcW_4*QcW;
     double QcW_6 = QcW_5*QcW;
 
-    c1 = SQRT2 + sqrt(6);
-    c2 = 4+2*sqrt(3);
-    c3 = 3*SQRT2 + 2*sqrt(6);
-    c4 = 4+2*sqrt(3);
-    c5 = SQRT2 + sqrt(6);
+    c1 = SQRT2 + SQRT6;
+    c2 = 4+2*SQRT3;
+    c3 = 3*SQRT2 + 2*SQRT6;
+    c4 = 4+2*SQRT3;
+    c5 = SQRT2 + SQRT6;
 
     gain = 1/(1+c1*QcW+c2*QcW_2+c3*QcW_3+c4*QcW_4+c5*QcW_5+QcW_6);
     ay[1] = (6+4*c1*QcW+2*c2*QcW_2-2*c4*QcW_4-4*c5*QcW_5-6*QcW_6)*gain;
@@ -204,7 +204,7 @@ void ButterFilter::genHighPass(double Wn)
     double QcW_4 = QcW_3*QcW;
     double QcW_5 = QcW_4*QcW;
 
-    c1 = c4 = 1+sqrt(5);
+    c1 = c4 = 1+SQRT5;
     c2 = c3 = c1+2; // 3+sqrt(5)
 
     gain = 1 / (1 + c1*QcW + c2*QcW_2 + c3*QcW_3 + c4*QcW_4 + QcW_5);
@@ -223,11 +223,11 @@ void ButterFilter::genHighPass(double Wn)
     double QcW_5 = QcW_4*QcW;
     double QcW_6 = QcW_5*QcW;
 
-    c1 = SQRT2 + sqrt(6);
-    c2 = 4+2*sqrt(3);
-    c3 = 3*SQRT2 + 2*sqrt(6);
-    c4 = 4+2*sqrt(3);
-    c5 = SQRT2 + sqrt(6);
+    c1 = SQRT2 + SQRT6;
+    c2 = 4+2*SQRT3;
+    c3 = 3*SQRT2 + 2*SQRT6;
+    c4 = 4+2*SQRT3;
+    c5 = SQRT2 + SQRT6;
 
     gain = 1/(1+c1*QcW+c2*QcW_2+c3*QcW_3+c4*QcW_4+c5*QcW_5+QcW_6);
     ay[1] = (-6-4*c1*QcW-2*c2*QcW_2+2*c4*QcW_4+4*c5*QcW_5+6*QcW_6)*gain;
