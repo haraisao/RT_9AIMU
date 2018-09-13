@@ -36,6 +36,8 @@ import struct
 import time
 import numpy as np
 
+import gl
+
 # struct imu_data ==> 28+4+4=36
 # struct imu_data_shm ==> 4+ 2*12 + 36*100 --> 3628
 #  
@@ -126,6 +128,11 @@ class ImuShm(object):
           self.shm.write(struct.pack('h', vals[i]),off+i*2)
       return
 
+  def get_angles(self):
+      off = self.shm_offset['roll']
+      return(self.read_float(off), self.read_float(off+4), self.read_float(off+8))
+
+
 #  def set_velocity(self, vals=[0,0,0]):
 #      off = self.shm_offset['sp_x']
 #      for i in range(3):
@@ -179,7 +186,7 @@ class ImuShm(object):
       offset = self.shm_offset['imu_data']
       data=self.shm.read(self.imu_data_len * self.max_pool, offset)
       return data
-      
+
   def get_last_imu_data(self, n, off=0):
       data=bytes()
       offset = self.shm_offset['imu_data']
