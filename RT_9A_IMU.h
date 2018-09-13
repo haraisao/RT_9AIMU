@@ -61,14 +61,17 @@ typedef struct imu_data{
 
 
 struct imu_data_shm{
-  unsigned short current;
-  unsigned short pid;
-  short acc_off[3];
-  short gyro_off[3];
-  short mag_off[3];
-  short dummy;
+  unsigned short current; //  0
+  unsigned short pid;     //  2
+  short acc_off[3];       //  4
+  short gyro_off[3];      // 10
+  short mag_off[3];       // 16
+  short dummy;            // 22
+  float roll,pitch,yaw;  // 24
+  float pos[3];          // 36
+  float velocity[3];     // 48
 
-  struct imu_data data[MAX_POOL];
+  struct imu_data data[MAX_POOL]; // 60
 };
 
 

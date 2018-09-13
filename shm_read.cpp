@@ -121,6 +121,12 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
      a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
 
+     shm->roll=roll*180/M_PI;
+     shm->pitch=pitch*180/M_PI;
+     shm->yaw=yaw1*180/M_PI;
+
+     mvprintw(10,10, "rpy   : %f, %f, %f", shm->roll,shm->pitch,shm->yaw);
+
      record_time++;
      if (log_pose_fd){
        fprintf(log_pose_fd, "%d %d ",record_time, data->timestamp);

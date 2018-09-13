@@ -44,7 +44,9 @@ class ImuShm(object):
   def __init__(self, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2,
-            'acc_off': 4, 'gyro_off':10, 'mag_off':16 ,'imu_data' : 24}
+            'acc_off': 4, 'gyro_off':10, 'mag_off':16,
+            'roll':24, 'pitch':28, 'yew':32, 'pos':36,
+            'velocity':48, 'imu_data' : 60}
     self.imu_data_len=36
     self.imu_offset={'version':6, 'timestamp':7,'acc':8, 'templature':14,
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
@@ -71,6 +73,12 @@ class ImuShm(object):
 
   def read_uchar(self, off):
       return struct.unpack('B',self.shm.read(1, off))[0]
+
+  def read_float(self, off):
+      return struct.unpack('f',self.shm.read(4, off))[0]
+
+  def read_double(self, off):
+      return struct.unpack('d',self.shm.read(8, off))[0]
 
   def kill_imud(self):
       pid=struct.unpack('H', self.get_byts('pid'))[0]
