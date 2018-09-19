@@ -9,6 +9,9 @@
 
 extern int errno;
 
+/*
+   Map shared memory
+*/
 void *map_shared_mem(int id, int len, int create)
 {
   int shmid;
@@ -34,6 +37,7 @@ void *map_shared_mem(int id, int len, int create)
 }
 
 /***
+   Open logfile
 */
 FILE *open_logfile(const char *dirname, const char *name){
   FILE *fd;
@@ -56,6 +60,9 @@ FILE *open_logfile(const char *dirname, const char *name){
   return  fd;
 }
 
+/*
+  Close logfile
+*/
 void close_logfile(FILE *fd){
   if(fd){
     fclose(fd);
@@ -64,6 +71,9 @@ void close_logfile(FILE *fd){
   return;
 }
 
+/*
+  Save data 
+*/
 void save_data(FILE *fd, imu_data *data, struct timeval *tv){
  if (fd){
    double tm = data->tv_sec - tv->tv_sec + data->tv_usec/1000000.0;
@@ -76,3 +86,4 @@ void save_data(FILE *fd, imu_data *data, struct timeval *tv){
  }
  return;
 }
+

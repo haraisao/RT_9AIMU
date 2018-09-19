@@ -46,7 +46,7 @@ class ImuShm(object):
   def __init__(self, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2,
-            'acc_off': 4, 'gyro_off':10, 'mag_off':16,
+            'acc_off': 4, 'gyro_off':10, 'mag_off':16, 'status': 22, 'cmd':23,
             'roll':24, 'pitch':28, 'yew':32, 'pos':36,
             'velocity':48, 'imu_data' : 60}
     self.imu_data_len=36
@@ -54,6 +54,7 @@ class ImuShm(object):
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
 
     self.max_pool=100
+    self.gui=gl.BoxViewer()
 
   def get_shm_bytes(self, name, size=2):
       return self.shm.read(size, self.shm_offset[name])
@@ -130,7 +131,11 @@ class ImuShm(object):
 
   def get_angles(self):
       off = self.shm_offset['roll']
-      return(self.read_float(off), self.read_float(off+4), self.read_float(off+8))
+      return (self.read_float(off), self.read_float(off+4), self.read_float(off+8))
+
+  def get_status(self):
+      off = self.shm_offset['status']
+      return self.read_uchar(off)
 
 
 #  def set_velocity(self, vals=[0,0,0]):
@@ -297,3 +302,7 @@ class ImuShm(object):
       self.set_gyro_off(gyro)
 
       return
+
+  def start(self):
+    if self.gui :
+      self.gui.start(self)

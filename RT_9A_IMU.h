@@ -66,7 +66,8 @@ struct imu_data_shm{
   short acc_off[3];       //  4
   short gyro_off[3];      // 10
   short mag_off[3];       // 16
-  short dummy;            // 22
+  char status;            // 22
+  char cmd;            // 22
   float roll,pitch,yaw;  // 24
   float pos[3];          // 36
   float velocity[3];     // 48

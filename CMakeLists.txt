@@ -9,6 +9,7 @@ add_executable(
   main.c
   serial.c
   shmem.c
+  config.c
 )
 
 add_executable(

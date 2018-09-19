@@ -99,7 +99,7 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
 #if 1
-     apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts);
+     apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts, 0);
      double pitch=correct_pitch(x[0], data->acc);
 
      mvprintw(11,10, "Angle   : %lf, %lf, %lf               ",

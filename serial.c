@@ -11,6 +11,12 @@
 #endif
 #include "RT_9A_IMU.h"
 
+#include <sys/select.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+
 /**/
 
 char mkSum(char *data, int len)
@@ -26,6 +32,10 @@ char mkSum(char *data, int len)
   return res;
 }
 
+/*
+  Open Serial port
+
+*/
 int open_port(char *dev){
   struct termios tio;
   int fd;
@@ -36,18 +46,23 @@ int open_port(char *dev){
   cfsetospeed(&tio, B57600);
   cfsetispeed(&tio, B57600);
 
-  //fd=open(dev, O_RDONLY|O_NONBLOCK);
-  fd=open(dev, O_RDONLY);
+  //fd=open(dev, O_RDONLY|O_NONBLOCK|O_NOCTTY);
+  fd=open(dev, O_RDONLY| O_NOCTTY);
 
   if (fd < 0){
     fprintf(stderr, "Fail to open %s\n", dev);
     return(-1);
   }
+  fprintf(stderr, "open port: %s\n", dev);
   tcsetattr(fd, TCSANOW, &tio);
 
   return fd;
 }
 
+
+/*
+   read a packet
+*/
 int read_one_packet(int fd, char *buf, int len){
   int c,c1;
   c=read(fd, buf, len);
@@ -57,17 +72,20 @@ int read_one_packet(int fd, char *buf, int len){
   }
   while (c < len){
     c1 = read(fd, buf+c, len-c);
-    if (c1<0){
+    if (c1 <= 0){
       fprintf(stderr, "read error!\n");
       return -1;
     }
     c += c1;
-    fprintf(stderr, "read %d\n", c);
+    fprintf(stderr, "read [%d]\n", c);
   }
   return c;
 }
 
+/*
+  Check packet
 
+*/
 int check_packet(char *buf){
   int idx=0;
   unsigned char *p;
@@ -76,47 +94,51 @@ int check_packet(char *buf){
     if (p[0]==0xff && p[1]==0xff && p[2] == 0x52 && p[3]==0x54 && p[4]==0x39 && p[5]==0x41){
       return idx;
     }
-    fprintf(stderr, " %x %x %x %x \n", p[0],p[1],p[2],p[3]);
+    //fprintf(stderr, " %x %x %x %x \n", p[0],p[1],p[2],p[3]);
     idx++;
   }while(idx<PACKET_SIZE);
 
   return -1;
 }
 
+/*
+   read data from a serial port
+*/
 char *read_packet(int fd, char *buf, int buf_len){
   int c;
   int idx;
   memset(buf, 0, buf_len);
   c=read_one_packet(fd, buf, PACKET_SIZE);
-  if (c<0){
+  if (c <= 0){
     return NULL;
   }
   idx = check_packet(buf);
 
   if(idx == 0){ return buf; }
 
-  if(idx < 0){
+  if(idx <  0){
     return NULL;
   }else {
     c=read_one_packet(fd, buf+PACKET_SIZE, idx);
-    if (c<0){
+    if (c <= 0){
       return NULL;
     }else{
       return buf+idx;
     }
   }
-
   return NULL;
 }
 
-
+/*
+   read loop
+*/
 int read_loop(int fd, void*shmem){
   char buf[PACKET_SIZE*2];
   char *pack;
 
   while(1){
     pack = read_packet(fd, buf, PACKET_SIZE*2);
-    if (pack==NULL){
+    if (pack == NULL){
       return -1;
     }else{
       memcpy(shmem, pack, PACKET_SIZE);
@@ -126,6 +148,9 @@ int read_loop(int fd, void*shmem){
   return 0;
 }
 
+/*
+   Test functions
+*/
 #ifdef TEST
 int
 main(int argc, char **argv)
@@ -162,5 +187,4 @@ main(int argc, char **argv)
   close(cfd);
 
 }
-
 #endif

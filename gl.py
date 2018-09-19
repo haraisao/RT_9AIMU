@@ -14,6 +14,9 @@ class BoxViewer(object):
     self.angleX = 0.0
     self.angleY = 0.0
     self.angleZ = 0.0
+    self.camX = 0.0
+    self.camY = 0.0
+    self.camZ = 5.0
     self.light0p = [ 0.0, 3.0, 5.0, 1.0 ]
     self.light1p = [ 5.0, 3.0, 0.0, 1.0 ]
     self.redColor = [ 1.0, 0.0, 0.0, 1.0 ]
@@ -93,7 +96,7 @@ class BoxViewer(object):
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
     glLoadIdentity()
-    gluLookAt(3.0, 4.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    gluLookAt(self.camX, self.camY,self.camZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
     glLightfv(GL_LIGHT0, GL_POSITION, self.light0p)
     glLightfv(GL_LIGHT1, GL_POSITION, self.light1p)
@@ -127,6 +130,25 @@ class BoxViewer(object):
         glutPostRedisplay()
     elif key=='k':
         self.angleZ += 1.0
+        glutPostRedisplay()
+
+    elif key=='y':
+        self.camX += 1.0
+        glutPostRedisplay()
+    elif key=='Y':
+        self.camX -= 1.0
+        glutPostRedisplay()
+    elif key=='u':
+        self.camY += 1.0
+        glutPostRedisplay()
+    elif key=='U':
+        self.camY -= 1.0
+        glutPostRedisplay()
+    elif key=='i':
+        self.camZ += 1.0
+        glutPostRedisplay()
+    elif key=='I':
+        self.camZ -= 1.0
         glutPostRedisplay()
 
     glutMainLoopEvent()

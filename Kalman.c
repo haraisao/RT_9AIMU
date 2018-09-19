@@ -63,7 +63,7 @@ double correct_pitch(double pitch, short acc[3])
   Apply Kalman filter.
 */
 void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
-		  double x[2], double *yaw,  double P[4], double *p, double Ts)
+      double x[2], double *yaw, double P[4], double *p, double Ts, int flag)
 {
    double x_[2], P_[4], gain[4];
    double s_p_wy, c_p_wy, s_p_wz, c_p_wz, cos_th,tan_th;
@@ -141,39 +141,39 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    
   // calc yaw, 
   /// Yaw = atan2(m[0],m[1]);
-#if 0
-  s_p_wy = sin(x[1])*g[1];
-  c_p_wz = cos(x[1])*g[2];
-  cos_th = cos(x[0]);
+  if (flag == 0){
+    s_p_wy = sin(x[1])*g[1];
+    c_p_wz = cos(x[1])*g[2];
+    cos_th = cos(x[0]);
 
-  //  estimate X_n+1
-  *yaw = *yaw + (s_p_wy + c_p_wz)/cos_th * Ts;
+    //  estimate X_n+1
+    *yaw = *yaw + (s_p_wy + c_p_wz)/cos_th * Ts;
 
-  if (*yaw > 6.28318){
-    *yaw = *yaw - 6.28318;
-  }
-  if (*yaw < 0){
-    *yaw = *yaw + 6.28318;
-  }
+    if (*yaw > 6.28318){
+      *yaw = *yaw - 6.28318;
+    }
+    if (*yaw < 0){
+      *yaw = *yaw + 6.28318;
+    }
 /*
-  if (*yaw > M_PI){
-     *yaw -= M_PI_2;
-  }else if (*yaw < -M_PI){
-     *yaw += M_PI_2;
-  }
+    if (*yaw > M_PI){
+      *yaw -= M_PI_2;
+    }else if (*yaw < -M_PI){
+      *yaw += M_PI_2;
+    }
 */
-#else
-  double yy;
-  if (yaw_ > M_PI){
-     yaw_ -= M_PI_2;
-  }else if (yaw_ < -M_PI){
-     yaw_ += M_PI_2;
-  }
+  }else{
+    double yy;
+    if (yaw_ > M_PI){
+      yaw_ -= M_PI_2;
+    }else if (yaw_ < -M_PI){
+      yaw_ += M_PI_2;
+    }
 
-  yy = atan2(m[0], m[1]) - yaw_;
-  *yaw = *yaw + g_ * yy; 
-  p_ = (1 - g_) * p_;
-#endif
+    yy = atan2(m[0], m[1]) - yaw_;
+    *yaw = *yaw + g_ * yy; 
+    p_ = (1 - g_) * p_;
+  }
 
   return;
 }

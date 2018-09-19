@@ -8,6 +8,7 @@
 
 #define EXTERN	1
 #include "RT_9A_IMU.h"
+#include "config.h"
 #include <getopt.h>
 #include <sys/stat.h>
 #include <math.h>
@@ -57,8 +58,13 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
 
   cfd = open_port(cdev);
   if (cfd < 0){
+#if 0
     fprintf(stderr, "Fail to open %s\n", cdev);
     exit(-1);
+#endif
+    shm->status = -1;
+  }else{
+    shm->status = 1;
   }
   // Save PID
   pid=save_pid();
@@ -66,9 +72,21 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
 
   // Main loop
   while(1){
+    if(cfd < 0){
+        cfd = open_port(cdev);
+        if (cfd < 0){
+          shm->status = -1;
+          sleep(1);
+        }else{
+          shm->status = 1;
+        }
+        continue;
+    }
+    
     pack = read_packet(cfd, buf, PACKET_SIZE*2);
 
     if (pack != NULL){
+      fprintf(stderr, ".");
       data = &(shm->data[next]);
       gettimeofday(&tv,NULL);
 
@@ -82,30 +100,6 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       }
 
       /******/
-#if 0
-      if (prev_t > 0){
-      int d = data->timestamp - prev_t;
-      if (d < 0) { d +=256; }
-
-      shm->sp_x += (data->acc[0]*d+50)/100;
-      shm->sp_y += (data->acc[1]*d+50)/100;
-      shm->sp_z += (data->acc[2]*d+50)/100;
-
-      shm->angle_x = (shm->angle_x + (data->gyro[0]*d+50)/100);
-      if (shm->angle_x >2952){ shm->angle_x -= 5904; }
-      else if (shm->angle_x < -2952){ shm->angle_x += 5904; }
-
-      shm->angle_y = (shm->angle_y + (data->gyro[1]*d+50)/100);
-      if (shm->angle_y >2952){ shm->angle_y -= 5904; }
-      else if (shm->angle_y < -2952){ shm->angle_y += 5904; }
-
-      shm->angle_z = (shm->angle_z + (data->gyro[2]*d+50)/100);
-      if (shm->angle_z >2952){ shm->angle_z -= 5904; }
-      else if (shm->angle_z < -2952){ shm->angle_z += 5904; }
-      }
-      prev_t=data->timestamp;
-#endif
-      /******/
 
       data->tv_sec=tv.tv_sec;
       data->tv_usec=tv.tv_usec;
@@ -113,12 +107,18 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
 
       next = NEXT_N(shm->current, MAX_POOL);
     }else{
+      fprintf(stderr, "Error in read packet\n");
       usleep(100);
+      if(cfd > 0){
+        close(cfd);
+        cfd = -1;
+        shm->status = -1;
+      }
     }
     usleep(9000);
   }
   unlink(PID_FILE);
-  close(cfd);
+  if(cfd > 0){ close(cfd); }
 }
 
 /*
@@ -215,6 +215,9 @@ main(int argc, char *argv[])
   _shmem->mag_off[0]=52;
   _shmem->mag_off[1]=16;
   _shmem->mag_off[2]=76;
+
+  _shmem->status=0;
+  _shmem->cmd=0;
 
   next=0;
 
