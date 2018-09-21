@@ -14,9 +14,9 @@
 #include <math.h>
 
 #include "Kalman.h"
-#include "lib/MadgwickAHRS.h"
-#include "lib/MahonyAHRS.h"
-#include "lib/complementary_filter.h"
+#include "MadgwickAHRS.h"
+#include "MahonyAHRS.h"
+#include "complementary_filter.h"
 
 /*
   Filter
