@@ -10,6 +10,12 @@ add_executable(
   serial.c
   shmem.c
   config.c
+
+  Kalman.c 
+  lib/my_filter.cpp
+  lib/MadgwickAHRS.cpp
+  lib/MahonyAHRS.cpp
+  lib/complementary_filter.cpp
 )
 
 add_executable(

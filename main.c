@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <math.h>
 
+#include "Kalman.h"
+
 /*
  * Serial port
  */
@@ -45,6 +47,32 @@ unsigned short save_pid()
   return (unsigned short)pid;
 }
 
+/*
+  Filter
+*/
+
+static double x[2]={0.0,0.0};  // pitch, roll
+static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
+static double yaw=0.0;
+static double p=0.0;
+
+void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
+{
+  double Ts;
+
+  Ts = 0.01;
+  apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
+  shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
+  shm->roll=RAD2DEG(x[1]);
+  shm->yaw=RAD2DEG(yaw);
+
+  return;
+}
+
+/*
+   Main Loop
+  
+*/
 void main_loop(char *cdev, struct imu_data_shm* shm)
 {
   int pid;
@@ -99,6 +127,8 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       }
 
       /******/
+
+      apply_filter(shm, data);
 
       data->tv_sec=tv.tv_sec;
       data->tv_usec=tv.tv_usec;

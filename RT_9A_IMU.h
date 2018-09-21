@@ -46,6 +46,8 @@
 #define MAG_RAW2UT(v)	v*0.3
 #define TEMP_RAW2DEG(v)	v/340.0 + 35
 
+#define RAD2DEG(v)	v*180/M_PI
+#define DEG2RAD(v)	v*M_PI/180.0
 
 typedef struct imu_data{
   unsigned char header[6];

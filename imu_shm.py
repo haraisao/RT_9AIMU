@@ -43,7 +43,7 @@ import gl
 #  
 
 class ImuShm(object):
-  def __init__(self, id=130):
+  def __init__(self, gui=False, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2,
             'acc_off': 4, 'gyro_off':10, 'mag_off':16, 'status': 22, 'cmd':23,
@@ -54,7 +54,8 @@ class ImuShm(object):
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
 
     self.max_pool=100
-    self.gui=gl.BoxViewer()
+    if gui : self.gui=gl.BoxViewer()
+    else:  self.gui=None
 
   def get_shm_bytes(self, name, size=2):
       return self.shm.read(size, self.shm_offset[name])
@@ -248,6 +249,9 @@ class ImuShm(object):
       min_ar=np.array(arr).min(axis=0)
       return max_ar - (max_ar - min_ar)/2
 
+  def mag_calibration(self, m):
+      return self.get_mag_calibration_data(m)
+
   def get_acc_average(self):
       data = self.get_all_imu_data()
       res=np.array([0,0,0], dtype='float')
@@ -302,6 +306,10 @@ class ImuShm(object):
       self.set_gyro_off(gyro)
 
       return
+
+  def create_gui(self):
+    if not self.gui :
+      self.gui=gl.BoxViewer()
 
   def start(self):
     if self.gui :

@@ -99,38 +99,38 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
 #if 1
-     apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts, 0);
-     double pitch=correct_pitch(x[0], data->acc);
 
-     mvprintw(11,10, "Angle   : %lf, %lf, %lf               ",
-		 yaw*57.3,pitch*57.3,x[1]*57.3);
+    //apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts, 0);
+    //double pitch=correct_pitch(x[0], data->acc);
+
+     double pitch=shm->pitch;
+     double roll=shm->roll;
+     yaw=shm->yaw;
+
      mvprintw(11,60, "Ts  : %lf          ", Ts);
      double cph, cth, cps, sph, sth, sps;
      double a_x, a_y, a_z;
-     double roll, yaw1;
+     double roll1, yaw1;
      yaw1 = -yaw ;
      pitch = -pitch;
-     roll = -x[1];
+     roll1 = -roll;
      cph=cos(yaw1);
      sph=sin(yaw1);
      cth=cos(pitch);
      sth=sin(pitch);
-     cps=cos(roll);
-     sps=sin(roll);
+     cps=cos(roll1);
+     sps=sin(roll1);
      a_x = cph*cth*ax + (cph*sth*sps-sph*cps)*ay + cph*sth*cps*az+sph*sps*az;
      a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
      a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
 
-     shm->roll=roll*180/M_PI;
-     shm->pitch=pitch*180/M_PI;
-     shm->yaw=yaw1*180/M_PI;
-
-     mvprintw(10,10, "rpy   : %f, %f, %f", shm->roll,shm->pitch,shm->yaw);
+     mvprintw(10,10, "rpy   : %f, %f, %f",
+                       shm->roll, shm->pitch, shm->yaw);
 
      record_time++;
      if (log_pose_fd){
        fprintf(log_pose_fd, "%d %d ",record_time, data->timestamp);
-       fprintf(log_pose_fd, "%lf, %lf, %lf ", yaw*57.3,pitch*57.3,x[1]*57.3);
+       fprintf(log_pose_fd, "%lf, %lf, %lf ", yaw*57.3,pitch*57.3,roll*57.3);
        fprintf(log_pose_fd, "%lf, %lf, %lf\n", a_x,a_y,a_z);
      }
 
@@ -138,20 +138,6 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      acc_mag = sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
      acc_mag1 = myfilter_ax->fitFilter(acc_mag);
 
-//     a_x =  myfilter_ax->fitFilter(a_x);
-//     a_y =  myfilter_ay->fitFilter(a_y);
-//     a_z =  myfilter_az->fitFilter(a_z);
-
-
-#if 0
-     if(a_x > 0.05 || a_x < -0.05){ vx += a_x*Ts; }
-     if(a_y > 0.05 || a_y < -0.05){ vy += a_y*Ts; }
-     if(a_z > 0.05 || a_z < -0.05){ vz += a_z*Ts; }
-#else
- //    if(fabs(a_x) < 0.01){ a_x=0.0; }
- //    if(fabs(a_y) < 0.01){ a_y=0.0; }
- //    if(fabs(a_z) < 0.01){ a_z=0.0; }
-     //if(fabs(acc_mag) > 0.05)
      {
        vx += a_x*Ts*9.8; 
        vy += a_y*Ts*9.8; 
@@ -160,18 +146,17 @@ void print_data(int i, int current, struct imu_data_shm* shm)
        if(fabs(vy) < 0.005) { vy=0.0;}
        if(fabs(vz) < 0.005) { vz=0.0;}
 
-//       dx=dx + a_x*a_x*Ts * 4.9 * sign(a_x);
-//       dy=dy+ a_y*a_y*Ts * 4.9 * sign(a_y);
-//       dz=dz+ a_z*a_z*Ts * 4.9 * sign(a_z);
      }
-       dx=dx+ vx*Ts;
-       dy=dy+ vy*Ts;
-       dz=dz+ vz*Ts;
-#endif
-     mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf, %+lf)  ", a_x,a_y,a_z,acc_mag1, acc_mag);
+
+     dx=dx+ vx*Ts;
+     dy=dy+ vy*Ts;
+     dz=dz+ vz*Ts;
+
+     mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf, %+lf)  ",
+                  a_x,a_y,a_z,acc_mag1, acc_mag);
+
      mvprintw(13,10, "Velo  : %+lf, %+lf, %+lf               ", vx,vy,vz);
      mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
-     //mvprintw(14,10, "Acc_mag : %lf               ", acc_mag);
      
 #endif
 
