@@ -14,6 +14,17 @@
 #include <math.h>
 
 #include "Kalman.h"
+#include "lib/MadgwickAHRS.h"
+#include "lib/MahonyAHRS.h"
+#include "lib/complementary_filter.h"
+
+/*
+  Filter
+*/
+Madgwick *mdfilter;
+Mahony *mhfilter;
+imu_tools::ComplementaryFilter *cfilter;
+
 
 /*
  * Serial port
@@ -56,15 +67,41 @@ static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
 static double yaw=0.0;
 static double p=0.0;
 
-void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
+void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
 {
   double Ts;
 
   Ts = 0.01;
-  apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
-  shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
-  shm->roll=RAD2DEG(x[1]);
-  shm->yaw=RAD2DEG(yaw);
+
+  if(!strcmp(typ, "Kalman")){
+    apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
+
+    shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
+    shm->roll=RAD2DEG(x[1]);
+    shm->yaw=RAD2DEG(yaw);
+
+  }else if(!strcmp(typ, "Madgwick")){
+    mdfilter->updateIMU(data->gyro[0], data->gyro[1], data->gyro[2],
+		data->acc[0], data->acc[1], -data->acc[2]);
+
+    shm->yaw=mdfilter->getYaw();
+    shm->pitch=mdfilter->getPitch();
+    shm->roll=mdfilter->getRoll();
+
+  }else if(!strcmp(typ, "Mahony")){
+    mhfilter->updateIMU(data->gyro[0], data->gyro[1], data->gyro[2],
+		data->acc[0], data->acc[1], -data->acc[2]);
+
+    shm->yaw=mhfilter->getYaw();
+    shm->pitch=mhfilter->getPitch();
+    shm->roll=mhfilter->getRoll();
+
+  }else if(!strcmp(typ, "Complementary")){
+    //cfilter->updateIMU(gx, gy, gz, ax, ay, -az);
+
+  }else{
+
+  }
 
   return;
 }
@@ -73,7 +110,7 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
    Main Loop
   
 */
-void main_loop(char *cdev, struct imu_data_shm* shm)
+void main_loop(char *cdev, struct imu_data_shm* shm, char *typ)
 {
   int pid;
   char *pack;
@@ -128,7 +165,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
 
       /******/
 
-      apply_filter(shm, data);
+      apply_filter(shm, data, typ);
 
       data->tv_sec=tv.tv_sec;
       data->tv_usec=tv.tv_usec;
@@ -169,11 +206,13 @@ main(int argc, char *argv[])
   struct timeval tv;
 
   struct imu_data_shm* _shmem;
-  char *config_file="rt_imu.conf";
+  const char *config_file="rt_imu.conf";
 
   short acc_x_off, acc_y_off, acc_z_off;
   short gyro_x_off, gyro_y_off, gyro_z_off;
   short mag_x_off, mag_y_off, mag_z_off;
+
+  char *filter_type=NULL;
 
   /*
    *  Options....
@@ -219,6 +258,7 @@ main(int argc, char *argv[])
 
   /****/
   struct configuration *config=load_config_file(config_file);
+
   if (config){
     char *val;
 
@@ -239,10 +279,12 @@ main(int argc, char *argv[])
     val = get_value(config, "mag_off");
     if(val){ sscanf(val, "%hd %hd %hd", &mag_x_off, &mag_y_off, &mag_z_off); }
     else{ mag_x_off=mag_y_off=mag_z_off=0;}
+
+    filter_type = get_value(config, "filter");
   }
 
   /*** set default values ****/
-  if(cdev == NULL){ cdev=DEFAULT_PORT; } 
+  if(cdev == NULL){ cdev=(char *)DEFAULT_PORT; } 
   if(shmid < 0){ shmid=SHM_ID; }
 
   /*****************/
@@ -289,18 +331,23 @@ main(int argc, char *argv[])
 
   next=0;
 
+  mdfilter = new Madgwick(100, 0.6);
+  mhfilter = new Mahony(100, 1.0, 0.0);
+  cfilter = new imu_tools::ComplementaryFilter();
+
+
   /*
    * Start Daemon
    */
   if(daemon_flag == 1){
     if(daemon(0,0) == 0){ // run as deamon
-      main_loop(cdev,  _shmem);
+      main_loop(cdev,  _shmem, filter_type);
     }else{
       printf("Error : faild to start imud\n");
       return -1;
     }
   }else{
-    main_loop(cdev,  _shmem);
+    main_loop(cdev,  _shmem, filter_type);
   }
   return 0;
 }

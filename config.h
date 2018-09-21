@@ -26,7 +26,7 @@ extern "C" {
   int parse_config_line(char *buf, int len, struct configuration **config);
   void print_config(struct configuration *config);
   struct configuration * find_key(struct configuration *config, char* key);
-  char * get_value(struct configuration *config, char* key);
+  char * get_value(struct configuration *config, const char* key);
   void clear_config(struct configuration *config);
   struct configuration *load_config_file(const char *fname);
 

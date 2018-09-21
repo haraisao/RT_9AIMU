@@ -6,7 +6,7 @@ project(imu)
 
 add_executable(
   imud
-  main.c
+  main.cpp
   serial.c
   shmem.c
   config.c

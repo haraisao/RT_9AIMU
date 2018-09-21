@@ -118,7 +118,7 @@ print_config(struct configuration *config){
 
 */
 char *
-get_value(struct configuration *config, char* key){
+get_value(struct configuration *config, const char* key){
   struct configuration *c;
   c=config;
   while(c){
