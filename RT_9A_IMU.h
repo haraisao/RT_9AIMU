@@ -49,6 +49,17 @@
 #define RAD2DEG(v)	v*180/M_PI
 #define DEG2RAD(v)	v*M_PI/180.0
 
+
+#define F_NONE		0 
+#define F_KALMAN	0x02
+#define F_MADGWICK	0x04
+#define F_MAHONY	0x06
+#define F_COMPLEMENTARY	0x08
+
+#define GET_STATUS(x)	x & 0x01
+#define GET_FILTER_TYPE(x)	x & 0x0e
+#define SET_FILTER_TYPE(x, v)	x = (x & 0x01) | v 
+
 typedef struct imu_data{
   unsigned char header[6];
   unsigned char version;

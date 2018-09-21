@@ -72,57 +72,76 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
   double Ts;
 
   Ts = 0.01;
+  int status=GET_FILTER_TYPE(shm->status);
 
-  if(!strcmp(typ, "Kalman")){
-    apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
+  if( status == F_KALMAN){
+      apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
 
-    shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
-    shm->roll=RAD2DEG(x[1]);
-    shm->yaw=RAD2DEG(yaw);
+      shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
+      shm->roll=RAD2DEG(x[1]);
+      shm->yaw=RAD2DEG(yaw);
 
-  }else if(!strcmp(typ, "Madgwick")){
-    double gx = OMEGA_RAW2DEGS(data->gyro[0]);
-    double gy = OMEGA_RAW2DEGS(data->gyro[1]);
-    double gz = OMEGA_RAW2DEGS(data->gyro[2]);
+  }else if( status == F_MADGWICK) {
+      double gx = OMEGA_RAW2DEGS(data->gyro[0]);
+      double gy = OMEGA_RAW2DEGS(data->gyro[1]);
+      double gz = OMEGA_RAW2DEGS(data->gyro[2]);
 
-    double ax = ACC_RAW2G(data->acc[0]);
-    double ay = ACC_RAW2G(data->acc[1]);
-    double az = ACC_RAW2G(data->acc[2]);
+      double ax = ACC_RAW2G(data->acc[0]);
+      double ay = ACC_RAW2G(data->acc[1]);
+      double az = ACC_RAW2G(data->acc[2]);
 
-    double mx = MAG_RAW2UT(data->mag[0]);
-    double my = MAG_RAW2UT(data->mag[1]);
-    double mz = MAG_RAW2UT(data->mag[2]);
+      double mx = MAG_RAW2UT(data->mag[0]);
+      double my = MAG_RAW2UT(data->mag[1]);
+      double mz = MAG_RAW2UT(data->mag[2]);
 
 
-    mdfilter->updateIMU(gx, gy, gz, ax, ay, az);
+      mdfilter->updateIMU(gx, gy, gz, ax, ay, az);
 
-    shm->yaw=mdfilter->getYaw();
-    shm->pitch=mdfilter->getPitch();
-    shm->roll=mdfilter->getRoll();
+      shm->yaw=mdfilter->getYaw();
+      shm->pitch=mdfilter->getPitch();
+      shm->roll=mdfilter->getRoll();
 
-  }else if(!strcmp(typ, "Mahony")){
-    double gx = OMEGA_RAW2DEGS(data->gyro[0]);
-    double gy = OMEGA_RAW2DEGS(data->gyro[1]);
-    double gz = OMEGA_RAW2DEGS(data->gyro[2]);
+  }else if( status == F_MAHONY) {
 
-    double ax = ACC_RAW2G(data->acc[0]);
-    double ay = ACC_RAW2G(data->acc[1]);
-    double az = ACC_RAW2G(data->acc[2]);
+      double gx = OMEGA_RAW2DEGS(data->gyro[0]);
+      double gy = OMEGA_RAW2DEGS(data->gyro[1]);
+      double gz = OMEGA_RAW2DEGS(data->gyro[2]);
 
-    double mx = MAG_RAW2UT(data->mag[0]);
-    double my = MAG_RAW2UT(data->mag[1]);
-    double mz = MAG_RAW2UT(data->mag[2]);
+      double ax = ACC_RAW2G(data->acc[0]);
+      double ay = ACC_RAW2G(data->acc[1]);
+      double az = ACC_RAW2G(data->acc[2]);
 
-    mhfilter->updateIMU(gx, gy, gz, ax, ay, az);
+      double mx = MAG_RAW2UT(data->mag[0]);
+      double my = MAG_RAW2UT(data->mag[1]);
+      double mz = MAG_RAW2UT(data->mag[2]);
 
-    shm->yaw=mhfilter->getYaw();
-    shm->pitch=mhfilter->getPitch();
-    shm->roll=mhfilter->getRoll();
+      mhfilter->updateIMU(gx, gy, gz, ax, ay, az);
 
-  }else if(!strcmp(typ, "Complementary")){
-    //cfilter->updateIMU(gx, gy, gz, ax, ay, -az);
+      shm->yaw=mhfilter->getYaw();
+      shm->pitch=mhfilter->getPitch();
+      shm->roll=mhfilter->getRoll();
 
-  }else{
+  }else if( status ==  F_COMPLEMENTARY){
+/*
+      double gx = OMEGA_RAW2DEGS(data->gyro[0]);
+      double gy = OMEGA_RAW2DEGS(data->gyro[1]);
+      double gz = OMEGA_RAW2DEGS(data->gyro[2]);
+
+      double ax = ACC_RAW2G(data->acc[0]);
+      double ay = ACC_RAW2G(data->acc[1]);
+      double az = ACC_RAW2G(data->acc[2]);
+
+      double mx = MAG_RAW2UT(data->mag[0]);
+      double my = MAG_RAW2UT(data->mag[1]);
+      double mz = MAG_RAW2UT(data->mag[2]);
+
+      cfilter->update(gx, gy, gz, ax, ay, -az);
+
+      shm->yaw=cfilter->getYaw();
+      shm->pitch=cfilter->getPitch();
+      shm->roll=cfilter->getRoll();
+*/
+  }else {
 
   }
 
@@ -358,6 +377,18 @@ main(int argc, char *argv[])
   mhfilter = new Mahony(100, 1.0, 0.0);
   cfilter = new imu_tools::ComplementaryFilter();
 
+  
+  if(!strcmp(filter_type, "Kalman")){
+    SET_FILTER_TYPE(_shmem->status, F_KALMAN);
+  }else if(!strcmp(filter_type, "Madgwick")){
+    SET_FILTER_TYPE(_shmem->status, F_MADGWICK);
+  }else if(!strcmp(filter_type, "Mahony")){
+    SET_FILTER_TYPE(_shmem->status, F_MAHONY);
+  }else if(!strcmp(filter_type, "Complementary")){
+    SET_FILTER_TYPE(_shmem->status, F_COMPLEMENTARY);
+  }else{
+    SET_FILTER_TYPE(_shmem->status, F_NONE);
+  }
 
   /*
    * Start Daemon

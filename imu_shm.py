@@ -138,6 +138,17 @@ class ImuShm(object):
       off = self.shm_offset['status']
       return self.read_uchar(off)
 
+  def get_filter(self):
+      v0=self.get_status()
+      return ((v0 & 0x0e) >> 1)
+
+  def set_filter(self, v):
+      v0=self.get_status()
+      off = self.shm_offset['status']
+      v = ((v0 & 0x01) | (v << 1))
+      self.shm.write(struct.pack('B', v), off)
+      return 
+
 
 #  def set_velocity(self, vals=[0,0,0]):
 #      off = self.shm_offset['sp_x']
