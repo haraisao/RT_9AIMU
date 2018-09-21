@@ -7,6 +7,7 @@
 #define __BUTTER_FILTER_H__
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #define SQRT2  1.4142135623730950488

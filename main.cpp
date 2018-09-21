@@ -69,9 +69,7 @@ static double p=0.0;
 
 void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
 {
-  double Ts;
-
-  Ts = 0.01;
+  double Ts = 0.01;
   int status=GET_FILTER_TYPE(shm->status);
 
   if( status == F_KALMAN){
@@ -82,40 +80,25 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
       shm->yaw=RAD2DEG(yaw);
 
   }else if( status == F_MADGWICK) {
-      double gx = OMEGA_RAW2DEGS(data->gyro[0]);
-      double gy = OMEGA_RAW2DEGS(data->gyro[1]);
-      double gz = OMEGA_RAW2DEGS(data->gyro[2]);
+      mdfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
+                           OMEGA_RAW2DEGS(data->gyro[1]),
+                           OMEGA_RAW2DEGS(data->gyro[2]),
+                           ACC_RAW2G(data->acc[0]),
+                           ACC_RAW2G(data->acc[1]),
+                           ACC_RAW2G(data->acc[2]));
 
-      double ax = ACC_RAW2G(data->acc[0]);
-      double ay = ACC_RAW2G(data->acc[1]);
-      double az = ACC_RAW2G(data->acc[2]);
-
-      double mx = MAG_RAW2UT(data->mag[0]);
-      double my = MAG_RAW2UT(data->mag[1]);
-      double mz = MAG_RAW2UT(data->mag[2]);
-
-
-      mdfilter->updateIMU(gx, gy, gz, ax, ay, az);
 
       shm->yaw=mdfilter->getYaw();
       shm->pitch=mdfilter->getPitch();
       shm->roll=mdfilter->getRoll();
 
   }else if( status == F_MAHONY) {
-
-      double gx = OMEGA_RAW2DEGS(data->gyro[0]);
-      double gy = OMEGA_RAW2DEGS(data->gyro[1]);
-      double gz = OMEGA_RAW2DEGS(data->gyro[2]);
-
-      double ax = ACC_RAW2G(data->acc[0]);
-      double ay = ACC_RAW2G(data->acc[1]);
-      double az = ACC_RAW2G(data->acc[2]);
-
-      double mx = MAG_RAW2UT(data->mag[0]);
-      double my = MAG_RAW2UT(data->mag[1]);
-      double mz = MAG_RAW2UT(data->mag[2]);
-
-      mhfilter->updateIMU(gx, gy, gz, ax, ay, az);
+      mhfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
+                           OMEGA_RAW2DEGS(data->gyro[1]),
+                           OMEGA_RAW2DEGS(data->gyro[2]),
+                           ACC_RAW2G(data->acc[0]),
+                           ACC_RAW2G(data->acc[1]),
+                           ACC_RAW2G(data->acc[2]));
 
       shm->yaw=mhfilter->getYaw();
       shm->pitch=mhfilter->getPitch();
@@ -123,19 +106,16 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
 
   }else if( status ==  F_COMPLEMENTARY){
 /*
-      double gx = OMEGA_RAW2DEGS(data->gyro[0]);
-      double gy = OMEGA_RAW2DEGS(data->gyro[1]);
-      double gz = OMEGA_RAW2DEGS(data->gyro[2]);
-
-      double ax = ACC_RAW2G(data->acc[0]);
-      double ay = ACC_RAW2G(data->acc[1]);
-      double az = ACC_RAW2G(data->acc[2]);
-
       double mx = MAG_RAW2UT(data->mag[0]);
       double my = MAG_RAW2UT(data->mag[1]);
       double mz = MAG_RAW2UT(data->mag[2]);
 
-      cfilter->update(gx, gy, gz, ax, ay, -az);
+      cfilter->update(OMEGA_RAW2DEGS(data->gyro[0]),
+                      OMEGA_RAW2DEGS(data->gyro[1]),
+                      OMEGA_RAW2DEGS(data->gyro[2]),
+                      ACC_RAW2G(data->acc[0]),
+                      ACC_RAW2G(data->acc[1]),
+                      ACC_RAW2G(data->acc[2]));
 
       shm->yaw=cfilter->getYaw();
       shm->pitch=cfilter->getPitch();
@@ -165,13 +145,11 @@ void main_loop(char *cdev, struct imu_data_shm* shm, char *typ)
 
   cfd = open_port(cdev);
   if (cfd < 0){
-#if 0
-    fprintf(stderr, "Fail to open %s\n", cdev);
-    exit(-1);
-#endif
-    shm->status &= 0xfe;
+    SET_STATUS( shm->status, 0);
+    //shm->status &= 0xfe;
   }else{
-    shm->status |= 0x01;
+    SET_STATUS( shm->status, 1);
+    //shm->status |= 0x01;
   }
   // Save PID
   pid=save_pid();
@@ -182,10 +160,12 @@ void main_loop(char *cdev, struct imu_data_shm* shm, char *typ)
     if(cfd < 0){
         cfd = open_port(cdev);
         if (cfd < 0){
-          shm->status &= 0xfe;
+          //shm->status &= 0xfe;
+          SET_STATUS(shm->status, 0);
           sleep(1);
         }else{
-          shm->status |= 0x01;
+          SET_STATUS(shm->status, 1);
+          //shm->status |= 0x01;
         }
         continue;
     }
@@ -220,7 +200,8 @@ void main_loop(char *cdev, struct imu_data_shm* shm, char *typ)
       if(cfd > 0){
         close(cfd);
         cfd = -1;
-        shm->status &= 0xfe;
+        SET_STATUS(shm->status, 0);
+        //shm->status &= 0xfe;
       }
     }
     usleep(9000);

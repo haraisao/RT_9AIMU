@@ -2,40 +2,20 @@
 #
 cmake_minimum_required(VERSION 3.0)
 
-project(imu)
+project(imud)
 
-add_executable(
-  imud
-  main.cpp
-  serial.c
-  shmem.c
-  config.c
+include_directories( "${PROJECT_SOURCE_DIR}/include" )
 
-  Kalman.c 
-  lib/my_filter.cpp
-  lib/MadgwickAHRS.cpp
-  lib/MahonyAHRS.cpp
-  lib/complementary_filter.cpp
-)
+add_subdirectory(lib)
+#add_subdirectory(src)
 
-add_executable(
-  read_test
-  Kalman.c 
-  shm_read.cpp
-  shmem.c
-  lib/my_filter.cpp
-  lib/MadgwickAHRS.cpp
-  lib/MahonyAHRS.cpp
-  lib/complementary_filter.cpp
-)
+file(GLOB C_SRCS src/*.c)
 
-add_executable(
-  read_test2
-  Kalman.c 
-  shm_read2.cpp
-  shmem.c
-  lib/MadgwickAHRS.cpp
-  lib/MahonyAHRS.cpp
-)
+add_executable( imud main.cpp ${C_SRCS})
 
-target_link_libraries( read_test ncurses m)
+target_link_libraries(imud imu_filter)
+
+add_executable( read_test shm_read.cpp ${C_SRCS})
+#add_executable( read_test2 shm_read2.cpp ${C_SRCS})
+
+target_link_libraries(read_test imu_filter ncurses m)

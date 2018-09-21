@@ -57,6 +57,7 @@
 #define F_COMPLEMENTARY	0x08
 
 #define GET_STATUS(x)	x & 0x01
+#define SET_STATUS(x, v)	x = (x & 0xfe) | v
 #define GET_FILTER_TYPE(x)	x & 0x0e
 #define SET_FILTER_TYPE(x, v)	x = (x & 0x01) | v 
 
