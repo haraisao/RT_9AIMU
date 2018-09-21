@@ -98,7 +98,7 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      d = data->timestamp - prev_t;
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
-#if 1
+#if 0
 
     //apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts, 0);
     //double pitch=correct_pitch(x[0], data->acc);
@@ -153,14 +153,14 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      dz=dz+ vz*Ts;
 
      mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf, %+lf)  ",
-                  a_x,a_y,a_z,acc_mag1, acc_mag);
+                  a_x, a_y, a_z, acc_mag1, acc_mag);
 
      mvprintw(13,10, "Velo  : %+lf, %+lf, %+lf               ", vx,vy,vz);
      mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
      
 #endif
 
-#if 0
+#if 1
      //mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
      mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
      mvprintw(12,10, "Angle(M) : %f, %f, %f               ",

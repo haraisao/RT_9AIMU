@@ -81,16 +81,39 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
     shm->yaw=RAD2DEG(yaw);
 
   }else if(!strcmp(typ, "Madgwick")){
-    mdfilter->updateIMU(data->gyro[0], data->gyro[1], data->gyro[2],
-		data->acc[0], data->acc[1], -data->acc[2]);
+    double gx = OMEGA_RAW2DEGS(data->gyro[0]);
+    double gy = OMEGA_RAW2DEGS(data->gyro[1]);
+    double gz = OMEGA_RAW2DEGS(data->gyro[2]);
+
+    double ax = ACC_RAW2G(data->acc[0]);
+    double ay = ACC_RAW2G(data->acc[1]);
+    double az = ACC_RAW2G(data->acc[2]);
+
+    double mx = MAG_RAW2UT(data->mag[0]);
+    double my = MAG_RAW2UT(data->mag[1]);
+    double mz = MAG_RAW2UT(data->mag[2]);
+
+
+    mdfilter->updateIMU(gx, gy, gz, ax, ay, az);
 
     shm->yaw=mdfilter->getYaw();
     shm->pitch=mdfilter->getPitch();
     shm->roll=mdfilter->getRoll();
 
   }else if(!strcmp(typ, "Mahony")){
-    mhfilter->updateIMU(data->gyro[0], data->gyro[1], data->gyro[2],
-		data->acc[0], data->acc[1], -data->acc[2]);
+    double gx = OMEGA_RAW2DEGS(data->gyro[0]);
+    double gy = OMEGA_RAW2DEGS(data->gyro[1]);
+    double gz = OMEGA_RAW2DEGS(data->gyro[2]);
+
+    double ax = ACC_RAW2G(data->acc[0]);
+    double ay = ACC_RAW2G(data->acc[1]);
+    double az = ACC_RAW2G(data->acc[2]);
+
+    double mx = MAG_RAW2UT(data->mag[0]);
+    double my = MAG_RAW2UT(data->mag[1]);
+    double mz = MAG_RAW2UT(data->mag[2]);
+
+    mhfilter->updateIMU(gx, gy, gz, ax, ay, az);
 
     shm->yaw=mhfilter->getYaw();
     shm->pitch=mhfilter->getPitch();
