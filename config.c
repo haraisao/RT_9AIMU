@@ -4,6 +4,9 @@
 */
 #include "config.h"
 
+/*
+  Trim a string
+*/
 char *
 str_trim(char *s){
   int len=strlen(s);
@@ -28,6 +31,9 @@ str_trim(char *s){
   return strdup(res);
 }
 
+/*
+   create new configuration item
+*/
 struct configuration *
 new_iem(char *key, char*value){
   struct configuration *res;
@@ -38,6 +44,9 @@ new_iem(char *key, char*value){
   return res;
 }
 
+/*
+   append an item to configuration
+*/
 void
 append_config(struct configuration *config, struct configuration *c)
 {
@@ -47,15 +56,20 @@ append_config(struct configuration *config, struct configuration *c)
   while(tmp->next){ tmp=tmp->next; }
 
   tmp->next = c;
+  c->prev = tmp;
 }
 
 
+/*
+   parse configuration file
+*/
 int
 parse_config_line(char *buf, int len, struct configuration **config){
   int pos=0;
   char *p, *p1;
   char line[MAXLEN];
   char *key, *value;
+  struct configuration *cc;
 
   p=buf;
 
@@ -70,7 +84,11 @@ parse_config_line(char *buf, int len, struct configuration **config){
 
     if(key && value){
       if (*config){
-        append_config(*config, new_iem(key, value));
+        if((cc=find_key(*config, key)) == NULL){
+          append_config(*config, new_iem(key, value));
+        }else{
+          cc->value=strdup(value);
+        }
       }else{
         *config = new_iem(key, value);
       }
@@ -82,7 +100,9 @@ parse_config_line(char *buf, int len, struct configuration **config){
   return 0;
 }
 
-
+/*
+   display configurations
+*/
 void
 print_config(struct configuration *config){
   struct configuration *c;
@@ -93,6 +113,10 @@ print_config(struct configuration *config){
   }
 }
 
+/*
+   get value of the key.
+
+*/
 char *
 get_value(struct configuration *config, char* key){
   struct configuration *c;
@@ -106,7 +130,27 @@ get_value(struct configuration *config, char* key){
   return NULL;
 }
 
+/*
+  find a key
+*/
+struct configuration *
+find_key(struct configuration *config, char* key)
+{
+  struct configuration *c;
+  c=config;
+  while(c){
+    if(!strcmp(c->key,key)){
+      return c;
+    }
+    c=c->next;
+  }
+  return NULL;
+}
 
+/*
+  delete configurations
+
+*/
 void
 clear_config(struct configuration *config){
   struct configuration *c;
@@ -121,6 +165,29 @@ clear_config(struct configuration *config){
     c=next;
   }
   config=NULL;
+}
+
+
+struct configuration *
+load_config_file(const char *fname)
+{
+  FILE *fp;
+  char *s;
+  int current=0;
+  struct configuration *config=NULL;
+  char buf[MAXLEN];
+
+  fp=fopen(fname, "r");
+  if (fp == NULL) {
+     return NULL;
+  }
+ 
+  while((s=fgets(&buf[current], MAXLEN-current, fp)) !=NULL){
+    current = parse_config_line(buf, strlen(s), &config);
+  }
+  fclose(fp);
+
+  return config;
 }
 
 #if 0

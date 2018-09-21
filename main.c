@@ -62,9 +62,9 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
     fprintf(stderr, "Fail to open %s\n", cdev);
     exit(-1);
 #endif
-    shm->status = -1;
+    shm->status &= 0xfe;
   }else{
-    shm->status = 1;
+    shm->status |= 0x01;
   }
   // Save PID
   pid=save_pid();
@@ -75,10 +75,10 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
     if(cfd < 0){
         cfd = open_port(cdev);
         if (cfd < 0){
-          shm->status = -1;
+          shm->status &= 0xfe;
           sleep(1);
         }else{
-          shm->status = 1;
+          shm->status |= 0x01;
         }
         continue;
     }
@@ -86,7 +86,6 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
     pack = read_packet(cfd, buf, PACKET_SIZE*2);
 
     if (pack != NULL){
-      fprintf(stderr, ".");
       data = &(shm->data[next]);
       gettimeofday(&tv,NULL);
 
@@ -112,7 +111,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       if(cfd > 0){
         close(cfd);
         cfd = -1;
-        shm->status = -1;
+        shm->status &= 0xfe;
       }
     }
     usleep(9000);
@@ -121,6 +120,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
   if(cfd > 0){ close(cfd); }
 }
 
+
 /*
  *  M A I N
  */
@@ -128,17 +128,22 @@ int
 main(int argc, char *argv[])
 {
   char *cdev=NULL;
-  char buf[PACKET_SIZE*2];
+  //char buf[PACKET_SIZE*2];
   char *pack;
   int i;
   int next=0;
   int create_flag=0;
-  int shmid=SHM_ID;
+  int shmid = -1;
   int daemon_flag=0;
   unsigned short pid;
   struct timeval tv;
 
   struct imu_data_shm* _shmem;
+  char *config_file="rt_imu.conf";
+
+  short acc_x_off, acc_y_off, acc_z_off;
+  short gyro_x_off, gyro_y_off, gyro_z_off;
+  short mag_x_off, mag_y_off, mag_z_off;
 
   /*
    *  Options....
@@ -149,12 +154,13 @@ main(int argc, char *argv[])
     { "help", no_argument, NULL, 'h'},
     { "port", required_argument, NULL, 'p'},
     { "shid", required_argument, NULL, 's'},
+    { "config", required_argument, NULL, 'f'},
     {  0, 0, 0, 0},
   };
 
   int opt;
   int longindex;
-  while((opt=getopt_long(argc, argv, "cdhp:s:", longopts, &longindex)) != -1){
+  while((opt=getopt_long(argc, argv, "cdf:hp:s:", longopts, &longindex)) != -1){
     switch(opt){
       case 'c':
         create_flag=1;
@@ -172,13 +178,44 @@ main(int argc, char *argv[])
       case 's':
         shmid=atoi(optarg);
         break;
+      case 'f':
+        config_file=optarg;
+        break;
       default:
         printf("Error: Invalid option( \"%c\" )\n", opt);
         break;
     }
   }
 
+  /****/
+  struct configuration *config=load_config_file(config_file);
+  if (config){
+    char *val;
+
+    if(cdev == NULL){ cdev=get_value(config, "device"); }
+    if(shmid < 0){
+      val = get_value(config, "shmem_id");
+      if(val != NULL){ shmid=atoi(val); }
+    }
+
+    val = get_value(config, "acc_off");
+    if(val){ sscanf(val, "%hd %hd %hd", &acc_x_off, &acc_y_off, &acc_z_off); }
+    else{ acc_x_off=acc_y_off=acc_z_off=0;}
+
+    val = get_value(config, "gyro_off");
+    if(val){ sscanf(val, "%hd %hd %hd",&gyro_x_off,&gyro_y_off,&gyro_z_off); }
+    else{ gyro_x_off=gyro_y_off=gyro_z_off=0;}
+
+    val = get_value(config, "mag_off");
+    if(val){ sscanf(val, "%hd %hd %hd", &mag_x_off, &mag_y_off, &mag_z_off); }
+    else{ mag_x_off=mag_y_off=mag_z_off=0;}
+  }
+
+  /*** set default values ****/
   if(cdev == NULL){ cdev=DEFAULT_PORT; } 
+  if(shmid < 0){ shmid=SHM_ID; }
+
+  /*****************/
 
   struct stat st;
   if(stat(PID_FILE, &st) == 0){
@@ -200,21 +237,22 @@ main(int argc, char *argv[])
    fprintf(stderr, "Error in map_shared_mem\n");
    exit(-1);
   }
+
  // Initialize
   _shmem->current=0;
   _shmem->pid=0;
 
-  _shmem->acc_off[0]=37;
-  _shmem->acc_off[1]=67;
-  _shmem->acc_off[2]=40;
+  _shmem->acc_off[0]=acc_x_off;
+  _shmem->acc_off[1]=acc_y_off;
+  _shmem->acc_off[2]=acc_z_off;
 
-  _shmem->gyro_off[0]=-9;
-  _shmem->gyro_off[1]=3;
-  _shmem->gyro_off[2]=-7;
+  _shmem->gyro_off[0]=gyro_x_off;
+  _shmem->gyro_off[1]=gyro_y_off;
+  _shmem->gyro_off[2]=gyro_z_off;
 
-  _shmem->mag_off[0]=52;
-  _shmem->mag_off[1]=16;
-  _shmem->mag_off[2]=76;
+  _shmem->mag_off[0]=mag_x_off;
+  _shmem->mag_off[1]=mag_y_off;
+  _shmem->mag_off[2]=mag_z_off;
 
   _shmem->status=0;
   _shmem->cmd=0;

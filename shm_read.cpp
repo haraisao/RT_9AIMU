@@ -283,10 +283,15 @@ int main(int argc, char **argv)
 
   for(i=0; (n < 0 || i<n) && flag < 1000;){
     current=_shmem->current;
+#if 1
     if (current == prev){
-      flag++;
+ //     flag++;
       usleep(1000);
-    }else{
+      c=getch();
+      if (c == 'q') break;
+    }else
+#endif
+    {
       flag=0;
       print_data(i, current,  _shmem);
       c=getch();
