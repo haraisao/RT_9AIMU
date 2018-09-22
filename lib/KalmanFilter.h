@@ -51,7 +51,7 @@ public:
   };
 
   //void update(float gx, float gy, float gz, float ax, float ay, float az, float Ts);
-  void update(short acc[3], short gyro[3], short mag[3], double Ts);
+  void update(double acc[3], double gyro[3], double mag[3], double Ts);
 
   float getRoll() {
     return this->roll * 57.29578f;
@@ -89,12 +89,12 @@ void get_valiance(double gain[4], double P[4], double newP[4]);
 
 void get_kalman_gain(double P[4], double r[4], double gain[4]);
 
-void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
+void apply_kalman_filter(double acc[3], double gyro[3], double mag[3],
    double x[2], double *yaw, double P[4], double *p, double Ts, int flag);
 
-double correct_pitch(double pitch, short acc[3]);
+double correct_pitch(double pitch, double acc[3]);
 
-void kalman_updateIMU(short acc[3], short gyro[3], short mag[3], double Ts,
+void kalman_updateIMU(double acc[3], double gyro[3], double mag[3], double Ts,
        double *_roll, double *_pitch, double *_yaw);
 
 #ifdef __cplusplus

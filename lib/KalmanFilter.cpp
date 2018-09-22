@@ -1,13 +1,12 @@
 /*
    Kalman filter for posture estimation by using RT-USB-9AXIS-00
 
-
 */
 #include "KalmanFilter.h"
 
 
 void
-KalmanFilter::update(short acc[3], short gyro[3], short mag[3], double Ts)
+KalmanFilter::update(double acc[3], double gyro[3], double mag[3], double Ts)
 {
   apply_kalman_filter(acc, gyro, mag, this->Pitch_Roll,
               &this->Est_Yaw,this->CovMat_P,&this->CovValue_py,Ts,this->flag);
@@ -24,7 +23,8 @@ KalmanFilter::update(short acc[3], short gyro[3], short mag[3], double Ts)
   Input: acc (m/s^2)
   Output: y (rad)
 */
-void get_angle_from_acc(double acc[3], double y[2]){
+void get_angle_from_acc(double acc[3], double y[2])
+{
   y[0] = atan2( -acc[0], sqrt(acc[1]*acc[1]+acc[2]*acc[2])); // pitch
   y[1] = atan2( acc[1], acc[2]); //roll
   return;
@@ -33,7 +33,8 @@ void get_angle_from_acc(double acc[3], double y[2]){
 /*
   Compute a new covariance matrix from Kalman Gain.
 */
-void get_valiance(double gain[4], double P[4], double newP[4]){
+void get_valiance(double gain[4], double P[4], double newP[4])
+{
   newP[0] = (1-gain[0]) * P[0] - gain[1]*P[2] ;
   newP[1] = (1-gain[0]) * P[1]  -gain[1]*P[3];
 
@@ -46,8 +47,8 @@ void get_valiance(double gain[4], double P[4], double newP[4]){
 /*
    Compute Kalman Gain.
 */
-void get_kalman_gain(double P[4], double r[4], double gain[4]){
-
+void get_kalman_gain(double P[4], double r[4], double gain[4])
+{
   double v=(P[0]+r[0])*(P[3]+r[3])-(P[1]+r[1])*(P[2]+r[2]);
 
   gain[0] = ( P[0]*(P[3]+r[3])-P[1]*(P[1]+r[1]))/v;
@@ -61,7 +62,7 @@ void get_kalman_gain(double P[4], double r[4], double gain[4]){
 /*
  Correct pitch angle
 */
-double correct_pitch(double pitch, short acc[3])
+double correct_pitch(double pitch, double acc[3])
 {
   if(acc[2] > 0){
    if (pitch > 0) return (M_PI - pitch);
@@ -75,7 +76,8 @@ double correct_pitch(double pitch, short acc[3])
 /*
   Apply Kalman filter.
 */
-void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
+void apply_kalman_filter(
+    double a[3], double g[3], double m[3],
       double x[2], double *yaw, double P[4], double *p, double Ts, int flag)
 {
    double x_[2], P_[4], gain[4];
@@ -93,18 +95,6 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
    r[0]=r[3]=Ts * Ts;
    r[1]=r[2]=0;
    ry=0.5*Ts * Ts;
-
-   /// Convert physical values
-   double g[3];
-   double a[3];
-   double m[3];
-
-   /* for IMU 9A */
-   for (i=0; i<3; i++){
-     g[i]=gyro[i]*M_PI/2952.0;
-     a[i]=acc[i]/2048.0;
-     m[i]=mag[i]*0.3;
-   }
 
    a[2] = -a[2];
 
@@ -168,13 +158,6 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
     if (*yaw < 0){
       *yaw = *yaw + 6.28318;
     }
-/*
-    if (*yaw > M_PI){
-      *yaw -= M_PI_2;
-    }else if (*yaw < -M_PI){
-      *yaw += M_PI_2;
-    }
-*/
   }else{
     double yy;
     if (yaw_ > M_PI){
@@ -202,7 +185,8 @@ static double Est_Yaw=0.0;
 static double CovValue_py=0.0;
 
 void
-kalman_updateIMU(short acc[3], short gyro[3], short mag[3], double Ts,
+kalman_updateIMU(
+  double acc[3], double gyro[3], double mag[3], double Ts,
        double *_roll, double *_pitch, double *_yaw)
 {
   apply_kalman_filter(acc,gyro,mag,Pitch_Roll,

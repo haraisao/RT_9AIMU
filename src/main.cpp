@@ -75,55 +75,67 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
   int status=GET_FILTER_TYPE(shm->status);
 
   if( status == F_KALMAN){
-      kfilter->update(data->acc, data->gyro, data->mag, Ts);
+    /// Convert physical values
+    double gyro[3];
+    double acc[3];
+    double mag[3];
 
-      shm->yaw  = kfilter->getYaw();
-      shm->pitch= kfilter->getPitch();
-      shm->roll = kfilter->getRoll();
+    /* for IMU 9A */
+    for (int i=0; i<3; i++){
+      gyro[i]=data->gyro[i]*M_PI/2952.0;
+      acc[i]=data->acc[i]/2048.0;
+      mag[i]=data->mag[i]*0.3;
+    }
+    //kfilter->update(data->acc, data->gyro, data->mag, Ts);
+    kfilter->update(acc, gyro, mag, Ts);
+
+    shm->yaw  = kfilter->getYaw();
+    shm->pitch= kfilter->getPitch();
+    shm->roll = kfilter->getRoll();
 
   }else if( status == F_MADGWICK) {
-      mdfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
-                           OMEGA_RAW2DEGS(data->gyro[1]),
-                           OMEGA_RAW2DEGS(data->gyro[2]),
-                           ACC_RAW2G(data->acc[0]),
-                           ACC_RAW2G(data->acc[1]),
-                           ACC_RAW2G(data->acc[2]));
+    mdfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
+                         OMEGA_RAW2DEGS(data->gyro[1]),
+                         OMEGA_RAW2DEGS(data->gyro[2]),
+                         ACC_RAW2G(data->acc[0]),
+                         ACC_RAW2G(data->acc[1]),
+                         ACC_RAW2G(data->acc[2]));
 
 
-      shm->yaw=mdfilter->getYaw();
-      shm->pitch=mdfilter->getPitch();
-      shm->roll=mdfilter->getRoll();
+    shm->yaw=mdfilter->getYaw();
+    shm->pitch=mdfilter->getPitch();
+    shm->roll=mdfilter->getRoll();
 
   }else if( status == F_MAHONY) {
-      mhfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
-                           OMEGA_RAW2DEGS(data->gyro[1]),
-                           OMEGA_RAW2DEGS(data->gyro[2]),
-                           ACC_RAW2G(data->acc[0]),
-                           ACC_RAW2G(data->acc[1]),
-                           ACC_RAW2G(data->acc[2]));
+    mhfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
+                         OMEGA_RAW2DEGS(data->gyro[1]),
+                         OMEGA_RAW2DEGS(data->gyro[2]),
+                         ACC_RAW2G(data->acc[0]),
+                         ACC_RAW2G(data->acc[1]),
+                         ACC_RAW2G(data->acc[2]));
 
-      shm->yaw=mhfilter->getYaw();
-      shm->pitch=mhfilter->getPitch();
-      shm->roll=mhfilter->getRoll();
+    shm->yaw=mhfilter->getYaw();
+    shm->pitch=mhfilter->getPitch();
+    shm->roll=mhfilter->getRoll();
 
   }else if( status ==  F_COMPLEMENTARY){
 /*
-      double mx = MAG_RAW2UT(data->mag[0]);
-      double my = MAG_RAW2UT(data->mag[1]);
-      double mz = MAG_RAW2UT(data->mag[2]);
+    double mx = MAG_RAW2UT(data->mag[0]);
+    double my = MAG_RAW2UT(data->mag[1]);
+    double mz = MAG_RAW2UT(data->mag[2]);
 */
-      double roll, pitch, yaw;
-      cfilter->update(OMEGA_RAW2DEGS(data->gyro[0]),
-                      OMEGA_RAW2DEGS(data->gyro[1]),
-                      OMEGA_RAW2DEGS(data->gyro[2]),
-                      ACC_RAW2G(data->acc[0]),
-                      ACC_RAW2G(data->acc[1]),
-                      ACC_RAW2G(data->acc[2]), Ts );
+    double roll, pitch, yaw;
+    cfilter->update(OMEGA_RAW2DEGS(data->gyro[0]),
+                    OMEGA_RAW2DEGS(data->gyro[1]),
+                    OMEGA_RAW2DEGS(data->gyro[2]),
+                    ACC_RAW2G(data->acc[0]),
+                    ACC_RAW2G(data->acc[1]),
+                    ACC_RAW2G(data->acc[2]), Ts );
 
-      cfilter->computeAngles(&roll, &pitch, &yaw);
-      shm->roll = RAD2DEG(roll);
-      shm->pitch= RAD2DEG(pitch);
-      shm->yaw  = RAD2DEG(yaw);
+    cfilter->computeAngles(&roll, &pitch, &yaw);
+    shm->roll = RAD2DEG(roll);
+    shm->pitch= RAD2DEG(pitch);
+    shm->yaw  = RAD2DEG(yaw);
 
   }else {
 
