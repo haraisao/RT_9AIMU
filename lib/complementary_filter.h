@@ -88,6 +88,8 @@ class ComplementaryFilter
                 double mx, double my, double mz,
                 double dt);
 
+    void computeAngles(double *roll, double *pitch, double *yaw);
+
     double q0_, q1_, q2_, q3_; 
   private:
     static const double kGravity;

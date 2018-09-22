@@ -469,6 +469,14 @@ double ComplementaryFilter::getAdaptiveGain(double alpha, double ax, double ay, 
   return factor*alpha;
 }
 
+void ComplementaryFilter::computeAngles(double *roll, double *pitch, double *yaw)
+{
+   *roll = atan2f(q0_*q1_ + q2_*q3_, 0.5f - q1_*q1_ - q2_*q2_);
+   *pitch = asinf(-2.0f * (q1_*q3_ - q0_*q2_));
+   *yaw = atan2f(q1_*q2_ + q0_*q3_, 0.5f - q2_*q2_ - q3_*q3_);
+}
+
+
 void normalizeVector(double& x, double& y, double& z)
 {
   double norm = sqrt(x*x + y*y + z*z);

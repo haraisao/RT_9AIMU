@@ -111,18 +111,20 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
       double mx = MAG_RAW2UT(data->mag[0]);
       double my = MAG_RAW2UT(data->mag[1]);
       double mz = MAG_RAW2UT(data->mag[2]);
-
+*/
+      double roll, pitch, yaw;
       cfilter->update(OMEGA_RAW2DEGS(data->gyro[0]),
                       OMEGA_RAW2DEGS(data->gyro[1]),
                       OMEGA_RAW2DEGS(data->gyro[2]),
                       ACC_RAW2G(data->acc[0]),
                       ACC_RAW2G(data->acc[1]),
-                      ACC_RAW2G(data->acc[2]));
+                      ACC_RAW2G(data->acc[2]), Ts );
 
-      shm->yaw=cfilter->getYaw();
-      shm->pitch=cfilter->getPitch();
-      shm->roll=cfilter->getRoll();
-*/
+      cfilter->computeAngles(&roll, &pitch, &yaw);
+      shm->roll = RAD2DEG(roll);
+      shm->pitch= RAD2DEG(pitch);
+      shm->yaw  = RAD2DEG(yaw);
+
   }else {
 
   }
