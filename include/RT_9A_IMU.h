@@ -34,6 +34,8 @@
 #define PACKET_SIZE	28
 #define MAX_POOL	100
 
+#define CALIB_DATA_LEN	1000
+
 #define PID_FILE	"/var/run/imud.pid"
 #endif
 

@@ -31,6 +31,13 @@ imu_tools::ComplementaryFilter *cfilter;
  */
 static int cfd=0;
 
+static int calib_idx=0;
+static double acc_x[CALIB_DATA_LEN];
+static double acc_y[CALIB_DATA_LEN];
+static double acc_z[CALIB_DATA_LEN];
+static double gyro_x[CALIB_DATA_LEN];
+static double gyro_y[CALIB_DATA_LEN];
+static double gyro_z[CALIB_DATA_LEN];
 /*
  * Signal Handler
  */
@@ -61,28 +68,15 @@ unsigned short save_pid()
 /*
   Filter
 */
-/*
-static double x[2]={0.0,0.0};  // pitch, roll
-static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
-static double yaw=0.0;
-static double p=0.0;
-*/
-
 void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
 {
   double Ts = 0.01;
   int status=GET_FILTER_TYPE(shm->status);
 
   if( status == F_KALMAN){
-/*
-      apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
-
-      shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
-      shm->roll=RAD2DEG(x[1]);
-      shm->yaw=RAD2DEG(yaw);
-*/
       double roll, pitch, yaw;
-      kalman_updateIMU(data->acc, data->gyro, data->mag, Ts, &roll, &pitch, &yaw);
+      kalman_updateIMU(data->acc, data->gyro, data->mag, Ts,
+                          &roll, &pitch, &yaw);
       shm->roll = RAD2DEG(roll);
       shm->pitch= RAD2DEG(pitch);
       shm->yaw  = RAD2DEG(yaw);
@@ -137,6 +131,39 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
 }
 
 /*
+*/
+void apply_command(struct imu_data_shm *shm, struct imu_data *data)
+{
+  /*** calibration **/
+
+  if(shm->cmd == 1){
+    double acc_x_off=0;
+    double acc_y_off=0;
+    double acc_z_off=0;
+    double gyro_x_off=0;
+    double gyro_y_off=0;
+    double gyro_z_off=0;
+
+    for(int i=0; i<CALIB_DATA_LEN;i++){
+      acc_x_off += acc_x[i];
+      acc_y_off += acc_y[i];
+      acc_z_off += acc_z[i];
+      gyro_x_off += gyro_x[i];
+      gyro_y_off += gyro_y[i];
+      gyro_z_off += gyro_z[i];
+    }
+      shm->acc_off[0] = acc_x_off /1000;
+      shm->acc_off[1] = acc_y_off /1000;
+      shm->acc_off[2] = (acc_z_off /1000) + 2048;
+      shm->gyro_off[0] = gyro_x_off /1000;
+      shm->gyro_off[1] = gyro_y_off /1000;
+      shm->gyro_off[2] = gyro_z_off /1000;
+    shm->cmd=0;
+  } 
+  return;
+}
+
+/*
    Main Loop
   
 */
@@ -154,10 +181,8 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
   cfd = open_port(cdev);
   if (cfd < 0){
     SET_STATUS( shm->status, 0);
-    //shm->status &= 0xfe;
   }else{
     SET_STATUS( shm->status, 1);
-    //shm->status |= 0x01;
   }
   // Save PID
   pid=save_pid();
@@ -168,12 +193,10 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
     if(cfd < 0){
         cfd = open_port(cdev);
         if (cfd < 0){
-          //shm->status &= 0xfe;
           SET_STATUS(shm->status, 0);
           sleep(1);
         }else{
           SET_STATUS(shm->status, 1);
-          //shm->status |= 0x01;
         }
         continue;
     }
@@ -186,6 +209,14 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
 
       memcpy(data, pack,PACKET_SIZE);
 
+      acc_x[calib_idx]=data->acc[0];
+      acc_y[calib_idx]=data->acc[1];
+      acc_z[calib_idx]=data->acc[2];
+      gyro_x[calib_idx]=data->gyro[0];
+      gyro_y[calib_idx]=data->gyro[1];
+      gyro_z[calib_idx]=data->gyro[2];
+      calib_idx = (calib_idx+1) % CALIB_DATA_LEN;
+
       /** subtract offsets **/
       for(i=0;i<3;i++){
         data->acc[i]  -= shm->acc_off[i];
@@ -196,6 +227,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
       /******/
 
       apply_filter(shm, data);
+      apply_command(shm, data);
 
       data->tv_sec=tv.tv_sec;
       data->tv_usec=tv.tv_usec;
@@ -209,7 +241,6 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
         close(cfd);
         cfd = -1;
         SET_STATUS(shm->status, 0);
-        //shm->status &= 0xfe;
       }
     }
     usleep(9000);
@@ -226,7 +257,6 @@ int
 main(int argc, char *argv[])
 {
   char *cdev=NULL;
-  //char buf[PACKET_SIZE*2];
   char *pack;
   int i;
   int next=0;
@@ -375,6 +405,10 @@ main(int argc, char *argv[])
   }else{
     SET_FILTER_TYPE(_shmem->status, F_NONE);
   }
+
+  /*
+    set global variables...
+  **/
 
   next=0;
 

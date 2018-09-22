@@ -149,6 +149,16 @@ class ImuShm(object):
       self.shm.write(struct.pack('B', v), off)
       return 
 
+  def get_cmd(self):
+      off = self.shm_offset['cmd']
+      return self.read_uchar(off)
+
+  def set_cmd(self, v):
+      off = self.shm_offset['cmd']
+      self.shm.write(struct.pack('B', v), off)
+      return 
+
+
 
 #  def set_velocity(self, vals=[0,0,0]):
 #      off = self.shm_offset['sp_x']
