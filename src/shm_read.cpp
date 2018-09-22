@@ -7,11 +7,11 @@
  */
 
 #include "RT_9A_IMU.h"
-#include "Kalman.h"
+#include "KalmanFilter.h"
 #include "MadgwickAHRS.h"
 #include "MahonyAHRS.h"
 #include "complementary_filter.h"
-#include "my_filter.h"
+//#include "my_filter.h"
 #include <getopt.h>
 #include <ncurses.h>
 #include <math.h>
@@ -43,9 +43,9 @@ Madgwick *mdfilter;
 Mahony *mhfilter;
 imu_tools::ComplementaryFilter *cfilter;
 
-MyFilter *myfilter_ax;
-MyFilter *myfilter_ay;
-MyFilter *myfilter_az;
+//MyFilter *myfilter_ax;
+//MyFilter *myfilter_ay;
+//MyFilter *myfilter_az;
 
 int record_time=0;
 
@@ -261,9 +261,9 @@ int main(int argc, char **argv)
   mdfilter = new Madgwick(100, 0.6);
   mhfilter = new Mahony(100, 1.0, 0.0);
   cfilter = new imu_tools::ComplementaryFilter();
-  myfilter_ax = new MyFilter(0.01, 0);
-  myfilter_ay = new MyFilter(0.01, 0);
-  myfilter_az = new MyFilter(0.01, 0);
+  //myfilter_ax = new MyFilter(0.01, 0);
+  //myfilter_ay = new MyFilter(0.01, 0);
+  //myfilter_az = new MyFilter(0.01, 0);
   gettimeofday(&start_tv, NULL);
 
   for(i=0; (n < 0 || i<n) && flag < 1000;){

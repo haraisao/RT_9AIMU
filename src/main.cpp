@@ -13,7 +13,7 @@
 #include <sys/stat.h>
 #include <math.h>
 
-#include "Kalman.h"
+#include "KalmanFilter.h"
 #include "MadgwickAHRS.h"
 #include "MahonyAHRS.h"
 #include "complementary_filter.h"
@@ -21,6 +21,7 @@
 /*
   Filter
 */
+KalmanFilter *kfilter;
 Madgwick *mdfilter;
 Mahony *mhfilter;
 imu_tools::ComplementaryFilter *cfilter;
@@ -74,12 +75,11 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
   int status=GET_FILTER_TYPE(shm->status);
 
   if( status == F_KALMAN){
-      double roll, pitch, yaw;
-      kalman_updateIMU(data->acc, data->gyro, data->mag, Ts,
-                          &roll, &pitch, &yaw);
-      shm->roll = RAD2DEG(roll);
-      shm->pitch= RAD2DEG(pitch);
-      shm->yaw  = RAD2DEG(yaw);
+      kfilter->update(data->acc, data->gyro, data->mag, Ts);
+
+      shm->yaw  = kfilter->getYaw();
+      shm->pitch= kfilter->getPitch();
+      shm->roll = kfilter->getRoll();
 
   }else if( status == F_MADGWICK) {
       mdfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
@@ -414,6 +414,7 @@ main(int argc, char *argv[])
 
   next=0;
 
+  kfilter = new KalmanFilter(100);
   mdfilter = new Madgwick(100, 0.6);
   mhfilter = new Mahony(100, 1.0, 0.0);
   cfilter = new imu_tools::ComplementaryFilter();
