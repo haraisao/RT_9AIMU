@@ -177,3 +177,25 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
 
   return;
 }
+
+
+/*
+
+*/
+
+static double x[2]={0.0,0.0};  // pitch, roll
+static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
+static double yaw=0.0;
+static double p=0.0;
+
+void
+kalman_updateIMU(short acc[3], short gyro[3], short mag[3], double Ts,
+       double *_roll, double *_pitch, double *_yaw)
+{
+  apply_kalman_filter(acc,gyro,mag,x,&yaw,P,&p,Ts,0);
+  *_pitch=correct_pitch(x[0], acc);
+  *_roll=x[1];
+  *_yaw=yaw;
+
+  return;
+}

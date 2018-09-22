@@ -179,6 +179,7 @@ load_config_file(const char *fname)
 
   fp=fopen(fname, "r");
   if (fp == NULL) {
+     fprintf(stderr, "No conf file \"%s\"\n", fname);
      return NULL;
   }
  

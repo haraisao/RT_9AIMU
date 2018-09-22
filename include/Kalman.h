@@ -32,6 +32,9 @@ void apply_kalman_filter(short acc[3], short gyro[3], short mag[3],
 
 double correct_pitch(double pitch, short acc[3]);
 
+void kalman_updateIMU(short acc[3], short gyro[3], short mag[3], double Ts,
+       double *_roll, double *_pitch, double *_yaw);
+
 #ifdef __cplusplus
 }
 #endif

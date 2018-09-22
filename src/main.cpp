@@ -61,23 +61,31 @@ unsigned short save_pid()
 /*
   Filter
 */
-
+/*
 static double x[2]={0.0,0.0};  // pitch, roll
 static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
 static double yaw=0.0;
 static double p=0.0;
+*/
 
-void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
+void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
 {
   double Ts = 0.01;
   int status=GET_FILTER_TYPE(shm->status);
 
   if( status == F_KALMAN){
+/*
       apply_kalman_filter(data->acc,data->gyro,data->mag,x,&yaw,P,&p,Ts,0);
 
       shm->pitch=RAD2DEG(correct_pitch(x[0], data->acc));
       shm->roll=RAD2DEG(x[1]);
       shm->yaw=RAD2DEG(yaw);
+*/
+      double roll, pitch, yaw;
+      kalman_updateIMU(data->acc, data->gyro, data->mag, Ts, &roll, &pitch, &yaw);
+      shm->roll = RAD2DEG(roll);
+      shm->pitch= RAD2DEG(pitch);
+      shm->yaw  = RAD2DEG(yaw);
 
   }else if( status == F_MADGWICK) {
       mdfilter->updateIMU( OMEGA_RAW2DEGS(data->gyro[0]),
@@ -132,7 +140,7 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data, char *typ)
    Main Loop
   
 */
-void main_loop(char *cdev, struct imu_data_shm* shm, char *typ)
+void main_loop(char *cdev, struct imu_data_shm* shm)
 {
   int pid;
   char *pack;
@@ -187,7 +195,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm, char *typ)
 
       /******/
 
-      apply_filter(shm, data, typ);
+      apply_filter(shm, data);
 
       data->tv_sec=tv.tv_sec;
       data->tv_usec=tv.tv_usec;
@@ -304,6 +312,7 @@ main(int argc, char *argv[])
     else{ mag_x_off=mag_y_off=mag_z_off=0;}
 
     filter_type = get_value(config, "filter");
+  }else{
   }
 
   /*** set default values ****/
@@ -352,14 +361,10 @@ main(int argc, char *argv[])
   _shmem->status=0;
   _shmem->cmd=0;
 
-  next=0;
-
-  mdfilter = new Madgwick(100, 0.6);
-  mhfilter = new Mahony(100, 1.0, 0.0);
-  cfilter = new imu_tools::ComplementaryFilter();
-
   
-  if(!strcmp(filter_type, "Kalman")){
+  if(!filter_type){
+    SET_FILTER_TYPE(_shmem->status, F_NONE);
+  }else if(!strcmp(filter_type, "Kalman")){
     SET_FILTER_TYPE(_shmem->status, F_KALMAN);
   }else if(!strcmp(filter_type, "Madgwick")){
     SET_FILTER_TYPE(_shmem->status, F_MADGWICK);
@@ -371,18 +376,24 @@ main(int argc, char *argv[])
     SET_FILTER_TYPE(_shmem->status, F_NONE);
   }
 
+  next=0;
+
+  mdfilter = new Madgwick(100, 0.6);
+  mhfilter = new Mahony(100, 1.0, 0.0);
+  cfilter = new imu_tools::ComplementaryFilter();
+
   /*
    * Start Daemon
    */
   if(daemon_flag == 1){
     if(daemon(0,0) == 0){ // run as deamon
-      main_loop(cdev,  _shmem, filter_type);
+      main_loop(cdev,  _shmem);
     }else{
       printf("Error : faild to start imud\n");
       return -1;
     }
   }else{
-    main_loop(cdev,  _shmem, filter_type);
+    main_loop(cdev,  _shmem);
   }
   return 0;
 }
