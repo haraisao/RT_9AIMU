@@ -1,5 +1,5 @@
 /*
-
+  Utilities...
 
 */
 #include "utils.h"
@@ -22,4 +22,26 @@ shift_and_push(double val, double *data, int n){
    return data;
 }
 
+double
+calc_global_acc(double ax, double ay, double az,
+   double roll, double pitch, double yaw, double acc[3])
+{
+  double cph, cth, cps, sph, sth, sps;
+  double acc_mag;
+
+  cph=cos(yaw);
+  sph=sin(yaw);
+  cth=cos(pitch);
+  sth=sin(pitch);
+  cps=cos(roll);
+  sps=sin(roll);
+
+  acc[0] = cph*cth*ax + (cph*sth*sps-sph*cps)*ay + cph*sth*cps*az+sph*sps*az;
+  acc[1] = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
+  acc[2] = -sth*ax + cth*sps*ay + cth*cps*az + 1;
+
+  acc_mag = sqrt(acc[0]*acc[0]+acc[1]*acc[1]+acc[2]*acc[2]);
+
+  return  acc_mag;
+}
 

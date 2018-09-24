@@ -21,11 +21,6 @@
 */
 static int prev_t=-1;
 
-static double x[2]={0.0,0.0};  // pitch, roll
-static double yaw=0.0; 
-static double P[4]={0.0,0.0,0.0,0.0};  // covaiance matrix
-static double p=0.0; 
-
 static double vx=0.0; 
 static double vy=0.0; 
 static double vz=0.0; 
@@ -42,10 +37,6 @@ struct timeval start_tv;
 Madgwick *mdfilter;
 Mahony *mhfilter;
 imu_tools::ComplementaryFilter *cfilter;
-
-//MyFilter *myfilter_ax;
-//MyFilter *myfilter_ay;
-//MyFilter *myfilter_az;
 
 int record_time=0;
 
@@ -72,6 +63,7 @@ void print_data(int i, int current, struct imu_data_shm* shm)
   mvprintw(6,10, "MAG_Off : %4d %4d %4d",
 	  shm->mag_off[0], shm->mag_off[1], shm->mag_off[2]);
 
+  /*** Convert ***/
   gx = OMEGA_RAW2DEGS(data->gyro[0]);
   gy = OMEGA_RAW2DEGS(data->gyro[1]);
   gz = OMEGA_RAW2DEGS(data->gyro[2]);
@@ -98,28 +90,22 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      d = data->timestamp - prev_t;
      if (d < 0) { d +=256; }
      Ts = 0.01*d;
-#if 1
-
-    //apply_kalman_filter(data->acc, data->gyro, data->mag, x, &yaw, P, &p, Ts, 0);
-    //double pitch=correct_pitch(x[0], data->acc);
-
-     double pitch=shm->pitch;
-     double roll=shm->roll;
-     yaw=shm->yaw;
 
      mvprintw(11,60, "Ts  : %lf          ", Ts);
+
+#if 1
+     double pitch=shm->pitch;
+     double roll=shm->roll;
+     double yaw=shm->yaw;
      double cph, cth, cps, sph, sth, sps;
      double a_x, a_y, a_z;
-     double roll1, yaw1;
-     yaw1 = yaw;
-     pitch = pitch;
-     roll1 = roll;
-     cph=cos(yaw1);
-     sph=sin(yaw1);
+
+     cph=cos(yaw);
+     sph=sin(yaw);
      cth=cos(pitch);
      sth=sin(pitch);
-     cps=cos(roll1);
-     sps=sin(roll1);
+     cps=cos(roll);
+     sps=sin(roll);
      a_x = cph*cth*ax + (cph*sth*sps-sph*cps)*ay + cph*sth*cps*az+sph*sps*az;
      a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
      a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
@@ -134,9 +120,10 @@ void print_data(int i, int current, struct imu_data_shm* shm)
        fprintf(log_pose_fd, "%lf, %lf, %lf\n", a_x,a_y,a_z);
      }
 
-     double acc_mag,acc_mag1;
+     double acc_mag;
      acc_mag = sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
-     //acc_mag1 = myfilter_ax->fitFilter(acc_mag);
+     mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf)  ",
+                  a_x, a_y, a_z, acc_mag);
 
      {
        vx += a_x*Ts*9.8; 
@@ -152,11 +139,9 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      dy=dy+ vy*Ts;
      dz=dz+ vz*Ts;
 
-     mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf)  ",
-                  a_x, a_y, a_z, acc_mag);
 
-     mvprintw(13,10, "Velo  : %+lf, %+lf, %+lf               ", vx,vy,vz);
-     mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
+//     mvprintw(13,10, "Velo  : %+lf, %+lf, %+lf               ", vx,vy,vz);
+//     mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
      
 #endif
 
