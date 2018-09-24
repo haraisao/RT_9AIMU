@@ -87,3 +87,13 @@ void save_data(FILE *fd, imu_data *data, struct timeval *tv){
  return;
 }
 
+
+/*
+
+*/
+struct imu_data_shm *
+map_imu_shm(int id, int flag)
+{
+  return (struct imu_data_shm *)map_shared_mem(id, sizeof(struct imu_data_shm), flag);
+
+}

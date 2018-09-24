@@ -7,6 +7,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
+import graph
 
 class BoxViewer(object):
   def __init__(self, imu=None):
@@ -14,8 +15,8 @@ class BoxViewer(object):
     self.angleX = 0.0
     self.angleY = 0.0
     self.angleZ = 0.0
-    self.camX = 0.0
-    self.camY = 0.0
+    self.camX = -3.0
+    self.camY = 3.0
     self.camZ = 5.0
     self.light0p = [ 0.0, 3.0, 5.0, 1.0 ]
     self.light1p = [ 5.0, 3.0, 0.0, 1.0 ]
@@ -25,6 +26,9 @@ class BoxViewer(object):
     self.event_loop=False
 
     self.initView(320, 320)
+
+    self.graph=graph.DataPlot()
+    self.graph.show()
 
 
   def initBox(self, x=1, y=2, z=0.5):
@@ -71,7 +75,8 @@ class BoxViewer(object):
     glutKeyboardFunc(self.keyboard)
     #glutTimerFunc(100,timer, 0)
 
-    glClearColor(0.0, 0.0, 1.0, 0.0)
+    #glClearColor(0.0, 0.0, 1.0, 0.0)
+    glClearColor(0.3, 0.3, 0.3, 1.0)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_CULL_FACE)
     glCullFace(GL_FRONT)
@@ -91,16 +96,40 @@ class BoxViewer(object):
     gluPerspective(30.0, w/h, 1.0, 100.0)
     glMatrixMode(GL_MODELVIEW)
 
-  def draw(self):
-    glClearColor(0.0, 0.0, 1.0, 0.0)
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+  def line3D(self,x1, y1, z1, x2, y2, z2):
+    glLineWidth(1.0)
+    glBegin(GL_LINES)
+    glVertex3f(x1,y1,z1)
+    glVertex3f(x2,y2,z2)
+    glEnd();
 
-    glLoadIdentity()
-    gluLookAt(self.camX, self.camY,self.camZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+  def drawMeasure(self, measure, size):
+    glDisable(GL_LIGHTING)
+    glColor4f(0.5, 0.5, 0.5, 0.5)
+    for x in range(measure):
+      self.line3D(x*size-(size*measure/2),0,-(size*measure/2),
+        x*size-(size*measure/2),0,measure*size-(size*measure/2))
 
-    glLightfv(GL_LIGHT0, GL_POSITION, self.light0p)
-    glLightfv(GL_LIGHT1, GL_POSITION, self.light1p)
+    for y in range(measure):
+      self.line3D(-(size*measure/2),0,y*size-(size*measure/2),
+        measure*size-(size*measure/2),0,y*size-(size*measure/2))
 
+    glDisable(GL_DEPTH_TEST)
+
+    glColor4f(1.0, 0.0, 0.0, 1.0)
+    self.line3D(0,0,0,(measure/2+2)*size,0,0)
+
+    glColor4f(0.0, 1.0, 0.0, 1.0)
+    self.line3D(0,0,0,0,(measure/2+2)*size,0)
+
+    glColor4f(0.0, 0.0, 1.0, 1.0)
+    self.line3D(0,0,0,0,0,(measure/2+2)*size)
+
+    glEnable(GL_LIGHTING)
+    glEnable(GL_DEPTH_TEST)
+
+  def drawObject(self):
+    # Draw object
     glRotated(self.angleZ, 0.0, 0.0, 1.0)
     glRotated(self.angleY, 0.0, 1.0, 0.0)
     glRotated(self.angleX, 1.0, 0.0, 0.0)
@@ -113,6 +142,22 @@ class BoxViewer(object):
         for i in range(0, 4):
             glVertex(self.vertex[self.face[j][i]])
     glEnd()
+
+  def draw(self):
+    #glClearColor(0.0, 0.0, 1.0, 0.0)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    glLoadIdentity()
+    gluLookAt(self.camX, self.camY,self.camZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+
+    glColor3f(1,1,1)
+    self.drawMeasure(10,0.5)
+
+    glLightfv(GL_LIGHT0, GL_POSITION, self.light0p)
+    glLightfv(GL_LIGHT1, GL_POSITION, self.light1p)
+
+    #-----
+    self.drawObject()
 
     glFlush()
     glutSwapBuffers()
@@ -178,4 +223,7 @@ class BoxViewer(object):
     self.event_loop=True
     self.imu=imu
     while self.event_loop and self.imu :
-      self.set_angles( self.imu.get_angles() )
+      angles = self.imu.get_angles()
+      self.set_angles( angles )
+      if self.graph :
+        self.graph.set_angles( angles )

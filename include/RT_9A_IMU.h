@@ -63,6 +63,9 @@
 #define GET_FILTER_TYPE(x)	x & 0x0e
 #define SET_FILTER_TYPE(x, v)	x = (x & 0x01) | v 
 
+#define MAP_SHM(type,id,flag)	(type *)map_shared_mem(id, sizeof(type), flag)
+
+
 typedef struct imu_data{
   unsigned char header[6];
   unsigned char version;
@@ -100,6 +103,9 @@ extern int cfd;
 extern "C" {
 #endif
 void *map_shared_mem(int id, int len, int create);
+struct imu_data_shm *map_imu_shm(int id, int flag);
+
+
 FILE *open_logfile(const char *dirname, const char *name);
 void close_logfile(FILE *fd);
 void save_data(FILE *fd, imu_data *data, struct timeval *tv);

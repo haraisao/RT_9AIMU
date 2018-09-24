@@ -229,7 +229,10 @@ int main(int argc, char **argv)
   }
 
 
-  _shmem = (struct imu_data_shm *)map_shared_mem(shmid, sizeof(struct imu_data_shm), 0);
+  //_shmem = (struct imu_data_shm *)map_shared_mem(shmid, sizeof(struct imu_data_shm), 0);
+  //_shmem = map_imu_shm(shmid, 0);
+  _shmem = MAP_SHM(struct imu_data_shm, shmid, 0);
+
 
   /*
    *

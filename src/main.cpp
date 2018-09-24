@@ -379,9 +379,10 @@ main(int argc, char *argv[])
   /*
    * Init shared memory
    */
-  _shmem = (struct imu_data_shm *)map_shared_mem(shmid,
-		 	 sizeof(struct imu_data_shm), create_flag);
-  if (_shmem == NULL){
+//  _shmem = (struct imu_data_shm *)map_shared_mem(shmid,
+//		 	 sizeof(struct imu_data_shm), create_flag);
+
+  if (( _shmem = map_imu_shm(shmid, create_flag)) == NULL){
    fprintf(stderr, "Error in map_shared_mem\n");
    exit(-1);
   }

@@ -54,6 +54,7 @@ class ImuShm(object):
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
 
     self.max_pool=100
+
     if gui : self.gui=gl.BoxViewer()
     else:  self.gui=None
 
