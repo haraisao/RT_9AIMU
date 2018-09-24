@@ -11,9 +11,9 @@ KalmanFilter::update(double acc[3], double gyro[3], double mag[3], double Ts)
   apply_kalman_filter(acc, gyro, mag, this->Pitch_Roll,
               &this->Est_Yaw,this->CovMat_P,&this->CovValue_py,Ts,this->flag);
 
-  this->pitch = -correct_pitch(Pitch_Roll[0], acc);
   this->roll  = -Pitch_Roll[1];
-  this->yaw   = -Est_Yaw;
+  this->pitch = -correct_pitch(Pitch_Roll[0], acc);
+  this->yaw   = Est_Yaw;
 
   return;
 }
