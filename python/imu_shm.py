@@ -47,8 +47,8 @@ class ImuShm(object):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2,
             'acc_off': 4, 'gyro_off':10, 'mag_off':16, 'status': 22, 'cmd':23,
-            'roll':24, 'pitch':28, 'yew':32, 'pos':36,
-            'velocity':48, 'imu_data' : 60}
+            'roll':24, 'pitch':28, 'yew':32, 'pos':36, 'velocity':48,
+            'global_acc': 60, 'acc_magnitude': 72,'imu_data' : 80}
     self.imu_data_len=36
     self.imu_offset={'version':6, 'timestamp':7,'acc':8, 'templature':14,
             'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
@@ -160,6 +160,12 @@ class ImuShm(object):
       return 
 
 
+  def get_global_acc(self):
+      off = self.shm_offset['global_acc']
+      return (self.read_float(off), self.read_float(off+4), self.read_float(off+8))
+  def get_acc_magnitude(self):
+      off = self.shm_offset['acc_magnitude']
+      return self.read_float(off)
 
 #  def set_velocity(self, vals=[0,0,0]):
 #      off = self.shm_offset['sp_x']

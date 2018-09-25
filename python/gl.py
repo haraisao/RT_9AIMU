@@ -223,7 +223,12 @@ class BoxViewer(object):
     self.event_loop=True
     self.imu=imu
     while self.event_loop and self.imu :
+      #angles = self.imu.get_angles()
       angles = self.imu.get_angles()
       self.set_angles( angles )
       if self.graph :
-        self.graph.set_angles( angles )
+        #self.graph.set_angles( angles )
+        acc = self.imu.get_global_acc()
+        self.graph.set_global_acc( acc )
+        val = self.imu.get_acc_magnitude()
+        self.graph.setValue(3, (val-1)*100)

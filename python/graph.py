@@ -23,22 +23,20 @@ class DataPlot(Qwt.QwtPlot):
 
     # Initialize data
     self.x = arange(0.0, 100.1, 0.5)
-    self.roll = zeros(len(self.x), float32)
-    self.pitch = zeros(len(self.x), float32)
-    self.yaw = zeros(len(self.x), float32)
+    self.curves=[]
+    self.data_y=[]
 
     self.setTitle("Angle Graph")
     self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
 
-    #
-    #
-    #self.curveR = Qwt.QwtPlotCurve("Roll")
-    #self.curveR.attach(self)
-
-    #self.curveR.setPen(Qt.QPen(Qt.Qt.blue))
-    self.cRoll = self.mkCurve("Roll", Qt.Qt.red)
-    self.cPitch = self.mkCurve("Pitch", Qt.Qt.green)
-    self.cYaw = self.mkCurve("Yaw", Qt.Qt.blue)
+    # Qt predefined colors:
+    #   black, blue, color0, color1, cyan, darkBlue, darkCya, darkGray,
+    #   darkGreen,darkMagenta, darkRed, darakYellow, gray, green, lightGray,
+    #    magenta, red, transparent,white, yellow
+    self.mkCurve("Roll", Qt.Qt.red)
+    self.mkCurve("Pitch", Qt.Qt.green)
+    self.mkCurve("Yaw", Qt.Qt.blue)
+    self.mkCurve("Magnitude", Qt.Qt.magenta)
     #
     #
 
@@ -49,19 +47,27 @@ class DataPlot(Qwt.QwtPlot):
     mY.attach(self)
 
     self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time (seconds)")
+
     self.setAxisTitle(Qwt.QwtPlot.yLeft, "Values")
-    
     self.setAxisScale(Qwt.QwtPlot.yLeft, -180, 180)
+
     #self.startTimer(50)
     self.idx=0
     self.resize(500, 300)
 
+  #
+  #  append a curve
   def mkCurve(self, name, color):
+    data = zeros(len(self.x), float32)
     curve = Qwt.QwtPlotCurve(name)
     curve.attach(self)
     curve.setPen(Qt.QPen(color))
-    return curve
+    self.curves.append(curve)
+    self.data_y.append(data)
+    return (curve, data)
 
+  #
+  #
   def alignScales(self):
     self.canvas().setFrameStyle(Qt.QFrame.Box | Qt.QFrame.Plain)
     self.canvas().setLineWidth(1)
@@ -74,21 +80,36 @@ class DataPlot(Qwt.QwtPlot):
         scaleDraw.enableComponent(
           Qwt.QwtAbstractScaleDraw.Backbone, False)
 
+  #
+  #  set angle (roll,pitch,yaw)
+  #
   def set_angles(self, val):
-    self.roll = concatenate((self.roll[1:], self.roll[:1]), 0)
-    self.roll[-1] = val[0]
-    self.cRoll.setData(self.x, self.roll)
-
-    self.pitch = concatenate((self.pitch[1:], self.pitch[:1]), 0)
-    self.pitch[-1] = val[1]
-    self.cPitch.setData(self.x, self.pitch)
-
-    self.yaw = concatenate((self.yaw[1:], self.yaw[:1]), 0)
-    self.yaw[-1] = val[2] -180
-    self.cYaw.setData(self.x, self.yaw)
+    for i in range(3):
+      self.data_y[i] = concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
+      if i == 2:
+        self.data_y[i][-1] = val[i] -180
+      else:
+        self.data_y[i][-1] = val[i]
+      self.curves[i].setData(self.x, self.data_y[i])
 
     self.replot()
 
+  def set_global_acc(self, val):
+    for i in range(3):
+      self.data_y[i] = concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
+      self.data_y[i][-1] = val[i] * 90
+      self.curves[i].setData(self.x, self.data_y[i])
+
+    self.replot()
+
+
+  def setValue(self, idx, val):
+    self.data_y[idx] = concatenate((self.data_y[idx][1:], self.data_y[idx][:1]), 0)
+    self.data_y[idx][-1] = val
+    self.curves[idx].setData(self.x, self.data_y[idx])
+
+  #
+  # callback 
   def timerEvent(self, e):
     self.update()
        
@@ -97,7 +118,6 @@ class DataPlot(Qwt.QwtPlot):
 
 # Admire
 if __name__ == '__main__':
-#    __app = Qt.QApplication(sys.argv)
     demo = DataPlot()
     demo.resize(500, 300)
     demo.show()

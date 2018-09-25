@@ -94,9 +94,9 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      mvprintw(11,60, "Ts  : %lf          ", Ts);
 
 #if 1
-     double pitch=shm->pitch;
-     double roll=shm->roll;
-     double yaw=shm->yaw;
+     double roll = -DEG2RAD(shm->roll);
+     double pitch = DEG2RAD(shm->pitch);
+     double yaw = -DEG2RAD(shm->yaw);
      double cph, cth, cps, sph, sth, sps;
      double a_x, a_y, a_z;
 
@@ -110,8 +110,12 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
      a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
 
+     shm->global_acc[0]=a_x;
+     shm->global_acc[1]=a_y;
+     shm->global_acc[2]=a_z;
+
      mvprintw(10,10, "rpy   : %f, %f, %f",
-                       shm->roll, shm->pitch, shm->yaw);
+                       roll, pitch, yaw);
 
      record_time++;
      if (log_pose_fd){
@@ -122,6 +126,8 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 
      double acc_mag;
      acc_mag = sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+     //acc_mag = sqrt(ax*ax+ay*ay+az*az);
+     shm->acc_magnitude=acc_mag;
      mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf)  ",
                   a_x, a_y, a_z, acc_mag);
 
@@ -144,32 +150,6 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 //     mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
      
 #endif
-
-#if 0
-     //mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
-     mdfilter->updateIMU(gx, gy, gz, ax, ay, -az);
-     mvprintw(12,10, "Angle(M) : %f, %f, %f               ",
-	 mdfilter->getYaw(),mdfilter->getPitch(),mdfilter->getRoll());
-     mvprintw(13,10, "Velocity(M) : %f, %f, %f               ",
-	 mdfilter->vz,mdfilter->vy,mdfilter->vz);
-#endif
-
-#if 0
-     //mffilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
-     mhfilter->updateIMU(gx, gy, gz, ax, ay, -az);
-     mvprintw(14,10, "Angle(M) : %f, %f, %f               ",
-	 mhfilter->getYaw(),mhfilter->getPitch(),mhfilter->getRoll());
-#endif
-
-#if 0
-     double r,p,y;
-     //mdfilter->update(gx, gy, gz, ax, ay, -az, mx, my, mz);
-     cfilter->update(ax, ay, -az, gx, gy, gz, Ts);
-     imu_tools::computeAngles(cfilter->q0_, cfilter->q1_,
-        cfilter->q2_, cfilter->q3_, r, p, y);
-     mvprintw(13,10, "Angle : %f, %f, %f               ", y, p, r);
-#endif
-
   }
   /////
   prev_t=data->timestamp;

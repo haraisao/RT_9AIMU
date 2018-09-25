@@ -92,8 +92,13 @@ void save_data(FILE *fd, imu_data *data, struct timeval *tv){
 
 */
 struct imu_data_shm *
-map_imu_shm(int id, int flag)
+map_imu_shm(int id)
 {
-  return (struct imu_data_shm *)map_shared_mem(id, sizeof(struct imu_data_shm), flag);
+  void *res;
+  res=map_shared_mem(id, sizeof(struct imu_data_shm),0);
+  if(res == NULL){
+    res=map_shared_mem(id, sizeof(struct imu_data_shm),1);
+  }
+  return (struct imu_data_shm *)res;
 
 }

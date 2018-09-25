@@ -57,7 +57,11 @@ public:
     return this->roll * 57.29578f;
   }
   float getPitch() {
-    return this->pitch * 57.29578f;
+    if( this->pitch < 0){
+      return this->pitch * 57.29578f + 180;
+    }else{
+      return this->pitch * 57.29578f -180;
+    }
   }
   float getYaw() {
     return this->yaw * 57.29578f;

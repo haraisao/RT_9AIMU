@@ -90,8 +90,10 @@ struct imu_data_shm{
   float roll,pitch,yaw;  // 24
   float pos[3];          // 36
   float velocity[3];     // 48
+  float global_acc[3];   // 60
+  float acc_magnitude;   // 72
 
-  struct imu_data data[MAX_POOL]; // 60
+  struct imu_data data[MAX_POOL]; // 80
 };
 
 
@@ -103,7 +105,7 @@ extern int cfd;
 extern "C" {
 #endif
 void *map_shared_mem(int id, int len, int create);
-struct imu_data_shm *map_imu_shm(int id, int flag);
+struct imu_data_shm *map_imu_shm(int id);
 
 
 FILE *open_logfile(const char *dirname, const char *name);

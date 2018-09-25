@@ -257,7 +257,7 @@ void main_loop(char *cdev, struct imu_data_shm* shm)
         SET_STATUS(shm->status, 0);
       }
     }
-    usleep(9000);
+    //usleep(9000);
   }
   unlink(PID_FILE);
   if(cfd > 0){ close(cfd); }
@@ -382,7 +382,7 @@ main(int argc, char *argv[])
 //  _shmem = (struct imu_data_shm *)map_shared_mem(shmid,
 //		 	 sizeof(struct imu_data_shm), create_flag);
 
-  if (( _shmem = map_imu_shm(shmid, create_flag)) == NULL){
+  if (( _shmem = map_imu_shm(shmid)) == NULL){
    fprintf(stderr, "Error in map_shared_mem\n");
    exit(-1);
   }
