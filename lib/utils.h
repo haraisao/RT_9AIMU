@@ -13,7 +13,7 @@ extern "C" {
 
 void displayArray(double *data, int n);
 double *shift_and_push(double val, double *data, int n);
-double calc_global_acc(double ax, double ay, double az,double roll, double pitch, double yaw, double acc[3]);
+float calc_global_acc(double ax, double ay, double az,double roll, double pitch, double yaw, float acc[3]);
 
 #ifdef __cplusplus
 }

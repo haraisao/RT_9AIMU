@@ -11,6 +11,7 @@
 #include "MadgwickAHRS.h"
 #include "MahonyAHRS.h"
 #include "complementary_filter.h"
+#include "utils.h"
 //#include "my_filter.h"
 #include <getopt.h>
 #include <ncurses.h>
@@ -93,10 +94,10 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 
      mvprintw(11,60, "Ts  : %lf          ", Ts);
 
-#if 1
-     double roll = -DEG2RAD(shm->roll);
+     double roll = DEG2RAD(shm->roll);
      double pitch = DEG2RAD(shm->pitch);
-     double yaw = -DEG2RAD(shm->yaw);
+     double yaw = DEG2RAD(shm->yaw);
+#if 0
      double cph, cth, cps, sph, sth, sps;
      double a_x, a_y, a_z;
 
@@ -108,29 +109,34 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      sps=sin(roll);
      a_x = cph*cth*ax + (cph*sth*sps-sph*cps)*ay + cph*sth*cps*az+sph*sps*az;
      a_y = sph*cth*ax + (sph*sth*sps+cph*cps)*ay + (sph*sth*cps-cph*sps)*az;
-     a_z = -sth*ax + cth*sps*ay + cth*cps*az + 1;
+     a_z = -sth*ax + cth*sps*ay + cth*cps*az;
 
      shm->global_acc[0]=a_x;
      shm->global_acc[1]=a_y;
      shm->global_acc[2]=a_z;
 
-     mvprintw(10,10, "rpy   : %f, %f, %f",
-                       roll, pitch, yaw);
+     double acc_mag;
+     acc_mag = sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
+     shm->acc_magnitude=acc_mag;
+#else
+     shm->acc_magnitude=calc_global_acc(ax,ay,az,roll,pitch,yaw, shm->global_acc);
+#endif
+
+     mvprintw(10,10, "rpy   : %lf, %lf, %lf", shm->roll, shm->pitch, shm->yaw);
+     mvprintw(12,10, "Acc  : %+f, %+f, %+f  (%+f)  ",
+               shm->global_acc[0],shm->global_acc[1], shm->global_acc[2],
+                  shm->acc_magnitude);
 
      record_time++;
      if (log_pose_fd){
        fprintf(log_pose_fd, "%d %d ",record_time, data->timestamp);
        fprintf(log_pose_fd, "%lf, %lf, %lf ", yaw*57.3,pitch*57.3,roll*57.3);
-       fprintf(log_pose_fd, "%lf, %lf, %lf\n", a_x,a_y,a_z);
+       fprintf(log_pose_fd, "%f, %f, %f %f\n",
+                  shm->global_acc[0],shm->global_acc[1],shm->global_acc[2],
+                  shm->acc_magnitude);
      }
 
-     double acc_mag;
-     acc_mag = sqrt(a_x*a_x+a_y*a_y+a_z*a_z);
-     //acc_mag = sqrt(ax*ax+ay*ay+az*az);
-     shm->acc_magnitude=acc_mag;
-     mvprintw(12,10, "Acc  : %+lf, %+lf, %+lf  (%+lf)  ",
-                  a_x, a_y, a_z, acc_mag);
-
+#if 0
      {
        vx += a_x*Ts*9.8; 
        vy += a_y*Ts*9.8; 
@@ -148,8 +154,8 @@ void print_data(int i, int current, struct imu_data_shm* shm)
 
 //     mvprintw(13,10, "Velo  : %+lf, %+lf, %+lf               ", vx,vy,vz);
 //     mvprintw(14,10, "Dist  : %+lf, %+lf, %+lf               ", dx,dy,dz);
-     
 #endif
+     
   }
   /////
   prev_t=data->timestamp;

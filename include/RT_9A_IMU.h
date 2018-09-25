@@ -106,6 +106,7 @@ extern "C" {
 #endif
 void *map_shared_mem(int id, int len, int create);
 struct imu_data_shm *map_imu_shm(int id);
+void clear_all_shm(struct imu_data_shm *shm);
 
 
 FILE *open_logfile(const char *dirname, const char *name);

@@ -102,3 +102,13 @@ map_imu_shm(int id)
   return (struct imu_data_shm *)res;
 
 }
+
+/*
+
+*/
+void
+clear_all_shm(struct imu_data_shm *shm)
+{
+  memset(shm, 0,  sizeof(struct imu_data_shm));
+  return;
+}

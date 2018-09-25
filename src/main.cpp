@@ -387,6 +387,7 @@ main(int argc, char *argv[])
    exit(-1);
   }
 
+  clear_all_shm(_shmem);
  // Initialize
   _shmem->current=0;
   _shmem->pid=0;
