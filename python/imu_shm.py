@@ -363,6 +363,12 @@ class ImuShm(object):
       self.gui=gl.BoxViewer()
       self.gui.imu=self
 
+  def create_graph(self,title="Accl"):
+    acc_graph=graph.DataPlot(title=title)
+    acc_graph.imu=self
+    acc_graph.show()
+    return acc_graph
+
   #
   # start event-loop
   def start(self):

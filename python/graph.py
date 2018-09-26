@@ -5,41 +5,43 @@ import sys
 from PyQt4 import Qt
 import PyQt4.Qwt5 as Qwt
 from numpy import *
+import time
+from scipy import signal
 
 
 app=None
 
 class DataPlot(Qwt.QwtPlot):
-  def __init__(self, *args):
+  def __init__(self, title="", size=(500,300), *args):
     global app
 
     if app is None:
       app=Qt.QApplication([])
 
     Qwt.QwtPlot.__init__(self, *args)
+    self.imu=None
+    self.init_window()
+    self.setTitle(title)
 
-    self.setCanvasBackground(Qt.Qt.white)
-    self.alignScales()
+    self.idx=0
+    self.resize(size[0], size[1])
+    self.timer_id=0
 
+    self.hipass=None
+    self.lowpass=None
+
+  def init_window(self):
     # Initialize data
     self.x = arange(0.0, 100.1, 0.5)
     self.curves=[]
     self.data_y=[]
 
-    self.setTitle("Angle Graph")
+    self.setCanvasBackground(Qt.Qt.white)
+    self.alignScales()
+
     self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
-
-    # Qt predefined colors:
-    #   black, blue, color0, color1, cyan, darkBlue, darkCya, darkGray,
-    #   darkGreen,darkMagenta, darkRed, darakYellow, gray, green, lightGray,
-    #    magenta, red, transparent,white, yellow
-    self.mkCurve("Roll", Qt.Qt.red)
-    self.mkCurve("Pitch", Qt.Qt.green)
-    self.mkCurve("Yaw", Qt.Qt.blue)
-    self.mkCurve("Magnitude", Qt.Qt.magenta)
     #
-    #
-
+    # Insert a horizontal maker
     mY = Qwt.QwtPlotMarker()
     mY.setLabelAlignment(Qt.Qt.AlignRight | Qt.Qt.AlignTop)
     mY.setLineStyle(Qwt.QwtPlotMarker.HLine)
@@ -49,14 +51,14 @@ class DataPlot(Qwt.QwtPlot):
     self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time (seconds)")
 
     self.setAxisTitle(Qwt.QwtPlot.yLeft, "Values")
-    self.setAxisScale(Qwt.QwtPlot.yLeft, -180, 180)
-
-    #self.startTimer(50)
-    self.idx=0
-    self.resize(500, 300)
+    self.setAxisScale(Qwt.QwtPlot.yLeft, -200, 200)
 
   #
   #  append a curve
+  # Qt predefined colors:
+  #   black, blue, color0, color1, cyan, darkBlue, darkCya, darkGray,
+  #   darkGreen,darkMagenta, darkRed, darakYellow, gray, green, lightGray,
+  #    magenta, red, transparent,white, yellow
   def mkCurve(self, name, color):
     data = zeros(len(self.x), float32)
     curve = Qwt.QwtPlotCurve(name)
@@ -80,32 +82,33 @@ class DataPlot(Qwt.QwtPlot):
         scaleDraw.enableComponent(
           Qwt.QwtAbstractScaleDraw.Backbone, False)
 
-  #
-  #  set angle (roll,pitch,yaw)
-  #
-  def set_angles(self, val):
-    for i in range(3):
-      self.data_y[i] = concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
-      if i == 2:
-        self.data_y[i][-1] = val[i] -180
-      else:
-        self.data_y[i][-1] = val[i]
-      self.curves[i].setData(self.x, self.data_y[i])
 
-    self.replot()
+  def mk_hifilter(self, n, v=0.01, typ='high'):
+    if n == 0:
+      self.hipass=None
+    else:
+      self.hipass=signal.butter(n, v, typ)
 
-  def set_global_acc(self, val):
-    for i in range(3):
-      self.data_y[i] = concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
-      self.data_y[i][-1] = val[i] * 90
-      self.curves[i].setData(self.x, self.data_y[i])
+  def mk_lifilter(self, n, v=0.01, typ='low'):
+    if n == 0:
+      self.lowpass=None
+    else:
+      self.lowpass=signal.butter(n, v, typ)
 
-    self.replot()
+  def apply_filter(self, i):
+    if self.hipass :
+      self.data_y[i]=signal.filtfilt(self.hipass[0], self.hipass[1], self.data_y[i])
+    if self.lowpass :
+      self.data_y[i]=signal.filtfilt(self.lowpass[0], self.lowpass[1], self.data_y[i])
 
 
-  def setValue(self, idx, val):
+  def setValue(self, idx, val, filters=[]):
     self.data_y[idx] = concatenate((self.data_y[idx][1:], self.data_y[idx][:1]), 0)
     self.data_y[idx][-1] = val
+
+    for ff in filters:
+      self.data_y[i]=signal.filtfilt(ff[0], ff[1], self.data_y[i])
+
     self.curves[idx].setData(self.x, self.data_y[idx])
 
   #
@@ -116,9 +119,86 @@ class DataPlot(Qwt.QwtPlot):
   def update(self):
     pass
 
-# Admire
-if __name__ == '__main__':
-    demo = DataPlot()
-    demo.resize(500, 300)
-    demo.show()
-    sys.exit(app.exec_())
+  #
+  # start/stop timer
+  def start_timer(self, intval=10):
+    self.timer_id=self.startTimer(intval)
+
+  def stop_timer(self):
+    if self.timer_id :
+      self.killTimer(self.timer_id)
+      self.timer_id=0
+
+#
+#
+#
+class PlotAccel(DataPlot):
+  #
+  def __init__(self, size=(500,300), *args):
+    DataPlot.__init__(self, title="Global Accel")
+    self.imu = None
+
+    self.mkCurve("Roll", Qt.Qt.red)
+    self.mkCurve("Pitch", Qt.Qt.green)
+    self.mkCurve("Yaw", Qt.Qt.blue)
+    self.mkCurve("Magnitude", Qt.Qt.magenta)
+
+    self.hipass=signal.butter(1,0.002,'high')
+    self.lowpass=signal.butter(1,0.01,'low')
+
+  #
+  #
+  def set_global_acc(self, val):
+    for i in range(3):
+      self.setValue(i, val[i] *90)
+
+    self.replot()
+
+  #
+  #
+  def update(self):
+    if self.imu :
+      acc = self.imu.get_global_acc()
+      self.set_global_acc( acc )
+      val = self.imu.get_acc_magnitude()
+      self.setValue(3, (val-1)*100)
+
+#
+#
+#
+class PlotAngle(DataPlot):
+  def __init__(self, size=(500,300), *args):
+    DataPlot.__init__(self, title="Angles")
+    self.imu = None
+
+    self.mkCurve("Roll", Qt.Qt.red)
+    self.mkCurve("Pitch", Qt.Qt.green)
+    self.mkCurve("Yaw", Qt.Qt.blue)
+
+    #self.hipass=signal.butter(1,0.002,'high')
+    #self.lowpass=signal.butter(1,0.01,'low')
+    self.hipass=None
+    self.lowpass=None
+
+  #
+  #  set angle (roll,pitch,yaw)
+  #
+  def set_angles(self, val):
+    for i in range(3):
+      self.data_y[i] = concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
+      if i == 2:
+        self.data_y[i][-1] = val[i] -180
+      else:
+        self.data_y[i][-1] = val[i]
+
+      self.apply_filter(i)
+      self.curves[i].setData(self.x, self.data_y[i])
+
+    self.replot()
+
+  #
+  def update(self):
+    if self.imu :
+      angle = self.imu.get_angles()
+      self.set_angles( angle )
+
