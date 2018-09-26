@@ -3,31 +3,6 @@
 # All rights reserved.
 #
 #
-
-'''
-#define MAX_POOL 100
-typedef struct imu_data{
-  unsigned char header[6];
-  unsigned char version;
-  unsigned char timestamp;
-  short acc[3];
-  short templature;
-  short gyro[3];
-  short mag[3];
-  int tv_sec;
-  int tv_usec;
-} imu_data;
-
-
-struct imu_data_shm{
-  unsigned short current;
-  unsigned short pid;
-  short acc_off[3];
-  short gyro_off[3];
-
-  struct imu_data data[MAX_POOL];
-};
-'''
 #
 import os
 import signal
@@ -35,29 +10,38 @@ import sysv_ipc
 import struct
 import time
 import numpy as np
+import threading
 
 import gl
+import graph
 
-# struct imu_data ==> 28+4+4=36
-# struct imu_data_shm ==> 4+ 2*12 + 36*100 --> 3628
 #  
 
 class ImuShm(object):
   def __init__(self, gui=False, id=130):
     self.shm = sysv_ipc.SharedMemory(id, 0, mode=0666)
     self.shm_offset={'current':0, 'pid': 2,
-            'acc_off': 4, 'gyro_off':10, 'mag_off':16, 'status': 22, 'cmd':23,
-            'roll':24, 'pitch':28, 'yew':32, 'pos':36, 'velocity':48,
-            'global_acc': 60, 'acc_magnitude': 72,'imu_data' : 80}
+                     'acc_off': 4, 'gyro_off':10, 'mag_off':16,
+                     'status': 22, 'cmd':23,
+                     'roll':24, 'pitch':28, 'yew':32,
+                     'pos':36, 'velocity':48,
+                     'global_acc': 60, 'acc_magnitude': 72,
+                     'imu_data' : 80}
+
     self.imu_data_len=36
     self.imu_offset={'version':6, 'timestamp':7,'acc':8, 'templature':14,
-            'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
+                      'gyro':16, 'mag':22, 'tv_sec':28, 'tv_usec':32}
 
     self.max_pool=100
 
-    if gui : self.gui=gl.BoxViewer()
-    else:  self.gui=None
+    if gui :
+      self.gui=gl.BoxViewer()
+      self.gui.imu=self
+    else:
+      self.gui=None
 
+  #
+  # helper functions to convert values
   def get_shm_bytes(self, name, size=2):
       return self.shm.read(size, self.shm_offset[name])
 
@@ -85,10 +69,14 @@ class ImuShm(object):
   def read_double(self, off):
       return struct.unpack('d',self.shm.read(8, off))[0]
 
+  #
+  # kill imu daemon
   def kill_imud(self):
       pid=struct.unpack('H', self.get_byts('pid'))[0]
       os.kill(pid,signal.SIGTERM)
 
+  #
+  #
   def get_imu_data(self, n):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       offset = self.shm_offset['imu_data'] + n * imu_data_off
@@ -98,9 +86,13 @@ class ImuShm(object):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       return self.shm_offset['imu_data'] + n * imu_data_off
 
+  #
+  #
   def get_current(self):
       return self.get_ushort('current')
 
+  #
+  #  get/set offsets
   def get_acc_off(self):
       off = self.shm_offset['acc_off']
       return(self.read_short(off), self.read_short(off+2), self.read_short(off+4))
@@ -131,6 +123,8 @@ class ImuShm(object):
           self.shm.write(struct.pack('h', vals[i]),off+i*2)
       return
 
+  #
+  # get angles(rpy), status
   def get_angles(self):
       off = self.shm_offset['roll']
       return (self.read_float(off), self.read_float(off+4), self.read_float(off+8))
@@ -139,6 +133,8 @@ class ImuShm(object):
       off = self.shm_offset['status']
       return self.read_uchar(off)
 
+  #
+  # filter to estimate RPY angles
   def get_filter(self):
       v0=self.get_status()
       return ((v0 & 0x0e) >> 1)
@@ -150,6 +146,8 @@ class ImuShm(object):
       self.shm.write(struct.pack('B', v), off)
       return 
 
+  #
+  # command: 1: calibration
   def get_cmd(self):
       off = self.shm_offset['cmd']
       return self.read_uchar(off)
@@ -159,10 +157,12 @@ class ImuShm(object):
       self.shm.write(struct.pack('B', v), off)
       return 
 
-
+  #
+  #  get global accelarations of gravity
   def get_global_acc(self):
       off = self.shm_offset['global_acc']
       return (self.read_float(off), self.read_float(off+4), self.read_float(off+8))
+
   def get_acc_magnitude(self):
       off = self.shm_offset['acc_magnitude']
       return self.read_float(off)
@@ -180,10 +180,14 @@ class ImuShm(object):
 #      return
 
 
+  #
+  #  IMU data access
   def get_current_imu_data(self):
       n= self.get_ushort('current')
       return self.get_imu_data(n)
 
+  #
+  #  accelerometer, gyroscope, geomagnetic sensor, templature, timestamp
   def get_acc(self, n):
       off = self.get_imu_data_offset(n) + self.imu_offset['acc']
       return(self.read_short(off), self.read_short(off+2), self.read_short(off+4))
@@ -201,9 +205,11 @@ class ImuShm(object):
       return self.read_short(off)
 
   def get_timestamp(self, n):
-      off = self.get_imu_data_offset(n) + self.imu_offset['imestamp']
+      off = self.get_imu_data_offset(n) + self.imu_offset['timestamp']
       return self.read_uchar(off)
 
+  #
+  # version number of the firmware
   def get_version(self, n):
       off = self.get_imu_data_offset(n) + self.imu_offset['version']
       return self.read_uchar(off)
@@ -212,15 +218,15 @@ class ImuShm(object):
       off = self.get_imu_data_offset(n) + self.imu_offset['tv_sec']
       return(self.read_int(off), self.read_int(off+4))
  
-  def get_time(self, n):
-      off = self.get_imu_data_offset(n) + self.imu_offset['tv_sec']
-      return(self.read_int(off), self.read_int(off+4))
- 
+  #
+  #  get all imu data in the shared memory
   def get_all_imu_data(self):
       offset = self.shm_offset['imu_data']
       data=self.shm.read(self.imu_data_len * self.max_pool, offset)
       return data
 
+  #
+  #  get cunrrent imu data
   def get_last_imu_data(self, n, off=0):
       data=bytes()
       offset = self.shm_offset['imu_data']
@@ -230,6 +236,8 @@ class ImuShm(object):
         data=data+self.shm.read(self.imu_data_len, offset + cn* self.imu_data_len)
       return data
 
+  #
+  #
   def get_value_from_data(self, n, data, name, typ='h'):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       off = n * imu_data_off+ self.imu_offset[name]
@@ -240,7 +248,8 @@ class ImuShm(object):
       else:
         res=struct.unpack(typ, data[off:off+2])[0]
       return res
-
+  #
+  #  accelerometer
   def get_acc_from_data(self, n, data):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       off = n * imu_data_off+ self.imu_offset['acc']
@@ -248,7 +257,8 @@ class ImuShm(object):
             struct.unpack('h', data[off+2:off+4])[0],
             struct.unpack('h', data[off+4:off+6])[0]]
       return res
-
+  #
+  # gyroscope
   def get_gyro_from_data(self, n, data):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       off = n * imu_data_off+ self.imu_offset['gyro']
@@ -256,7 +266,8 @@ class ImuShm(object):
             struct.unpack('h', data[off+2:off+4])[0],
             struct.unpack('h', data[off+4:off+6])[0]]
       return res
-
+  #
+  # geomagnetic sensor
   def get_mag_from_data(self, n, data):
       imu_data_off=self.imu_data_len + (self.imu_data_len % 4)
       off = n * imu_data_off+ self.imu_offset['mag']
@@ -265,6 +276,8 @@ class ImuShm(object):
             struct.unpack('h', data[off+4:off+6])[0]]
       return res
 
+  #
+  #  compute calibration data for geomagnetic sensor
   def get_mag_calibration_data(self, m):
       arr=[]
       for x in range(m):
@@ -277,9 +290,13 @@ class ImuShm(object):
       min_ar=np.array(arr).min(axis=0)
       return max_ar - (max_ar - min_ar)/2
 
+  #
+  #
   def mag_calibration(self, m):
       return self.get_mag_calibration_data(m)
 
+  #
+  #  compute an average 
   def get_acc_average(self):
       data = self.get_all_imu_data()
       res=np.array([0,0,0], dtype='float')
@@ -296,6 +313,8 @@ class ImuShm(object):
       res /= float(self.max_pool)
       return res
 
+  #
+  # compute calibration data for accelerometer and gyroscope
   def get_gyro_calibration_data(self, n):
       res=np.array([0,0,0], dtype='float')
       for x in range(n):
@@ -314,6 +333,8 @@ class ImuShm(object):
       res /= float(n)
       return res
 
+  #
+  # execute calibration and set offsets
   def do_calibration(self, n):
       self.set_acc_off([0,0,0])
       self.set_gyro_off([0,0,0])
@@ -335,10 +356,23 @@ class ImuShm(object):
 
       return
 
+  #
+  # create gui for RPY-angles display
   def create_gui(self):
     if not self.gui :
       self.gui=gl.BoxViewer()
+      self.gui.imu=self
 
+  #
+  # start event-loop
   def start(self):
     if self.gui :
-      self.gui.start(self)
+      self.gui.start()
+
+
+#
+# start event-loop with thread
+def start_loop(obj):
+  th1=threading.Thread(target=obj.run)
+  th1.start()
+
