@@ -11,7 +11,17 @@ from scipy import signal
 
 app=None
 
+color={ 'black':Qt.Qt.black, 'blue':Qt.Qt.blue, 'color0':Qt.Qt.color0,
+   'color1':Qt.Qt.color1, 'cyan':Qt.Qt.cyan, 'darkBlue':Qt.Qt.darkBlue,
+  'darkCya':Qt.Qt.darkCyan, 'darkGray':Qt.Qt.darkGray,
+   'darkGreen':Qt.Qt.darkGreen, 'darkMagenta':Qt.Qt.darkMagenta,
+   'darkRed':Qt.Qt.darkRed, 'darakYellow':Qt.Qt.darkYellow,
+   'gray':Qt.Qt.gray, 'green':Qt.Qt.green, 'lightGray':Qt.Qt.lightGray,
+    'magenta':Qt.Qt.magenta, 'red':Qt.Qt.red, 'transparent':Qt.Qt.transparent,
+  'white':Qt.Qt.white, 'yellow':Qt.Qt.yellow }
+
 class DataPlot(Qwt.QwtPlot):
+  #
   def __init__(self, title="", size=(500,300), *args):
     global app
 
@@ -29,7 +39,10 @@ class DataPlot(Qwt.QwtPlot):
 
     self.hipass=None
     self.lowpass=None
+    self.filters=[]
 
+  #
+  #
   def init_window(self):
     # Initialize data
     self.x = arange(0.0, 100.1, 0.5)
@@ -37,9 +50,10 @@ class DataPlot(Qwt.QwtPlot):
     self.data_y=[]
 
     self.setCanvasBackground(Qt.Qt.white)
-    self.alignScales()
+    #self.alignScales()
 
     self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend);
+
     #
     # Insert a horizontal maker
     mY = Qwt.QwtPlotMarker()
@@ -83,18 +97,34 @@ class DataPlot(Qwt.QwtPlot):
           Qwt.QwtAbstractScaleDraw.Backbone, False)
 
 
+  #
+  #
   def mk_hifilter(self, n, v=0.01, typ='high'):
     if n == 0:
       self.hipass=None
     else:
       self.hipass=signal.butter(n, v, typ)
 
+  #
+  #
   def mk_lifilter(self, n, v=0.01, typ='low'):
     if n == 0:
       self.lowpass=None
     else:
       self.lowpass=signal.butter(n, v, typ)
+  #
+  #
+  def append_filter(self, n, v=0.01, typ='low'):
+    if n > 0:
+      self.filters.append(signal.butter(n, v, typ))
+  #
+  #
+  def apply_filters(self, i):
+    for ff in self.filters :
+      self.data_y[i]=signal.filtfilt(ff[0], ff[1], self.data_y[i])
 
+  #
+  #
   def apply_filter(self, i):
     if self.hipass :
       self.data_y[i]=signal.filtfilt(self.hipass[0], self.hipass[1], self.data_y[i])
@@ -134,17 +164,14 @@ class DataPlot(Qwt.QwtPlot):
 #
 class PlotAccel(DataPlot):
   #
-  def __init__(self, size=(500,300), *args):
+  def __init__(self, imu, size=(500,300), *args):
     DataPlot.__init__(self, title="Global Accel")
-    self.imu = None
+    self.imu = imu
 
     self.mkCurve("Roll", Qt.Qt.red)
     self.mkCurve("Pitch", Qt.Qt.green)
     self.mkCurve("Yaw", Qt.Qt.blue)
     self.mkCurve("Magnitude", Qt.Qt.magenta)
-
-    self.hipass=signal.butter(1,0.002,'high')
-    self.lowpass=signal.butter(1,0.01,'low')
 
   #
   #
@@ -164,12 +191,12 @@ class PlotAccel(DataPlot):
       self.setValue(3, (val-1)*100)
 
 #
+# Plot Angles
 #
-#
-class PlotAngle(DataPlot):
-  def __init__(self, size=(500,300), *args):
+class PlotAngles(DataPlot):
+  def __init__(self, imu, size=(500,300), *args):
     DataPlot.__init__(self, title="Angles")
-    self.imu = None
+    self.imu = imu
 
     self.mkCurve("Roll", Qt.Qt.red)
     self.mkCurve("Pitch", Qt.Qt.green)
@@ -197,8 +224,9 @@ class PlotAngle(DataPlot):
     self.replot()
 
   #
+  #
   def update(self):
     if self.imu :
-      angle = self.imu.get_angles()
-      self.set_angles( angle )
+      angleis = self.imu.get_angles()
+      self.set_angles( angles )
 

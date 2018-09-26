@@ -12,8 +12,8 @@ import time
 import numpy as np
 import threading
 
-import gl
-import graph
+from gl import *
+from graph import *
 
 #  
 
@@ -35,7 +35,7 @@ class ImuShm(object):
     self.max_pool=100
 
     if gui :
-      self.gui=gl.BoxViewer()
+      self.gui=BoxViewer()
       self.gui.imu=self
     else:
       self.gui=None
@@ -360,11 +360,11 @@ class ImuShm(object):
   # create gui for RPY-angles display
   def create_gui(self):
     if not self.gui :
-      self.gui=gl.BoxViewer()
+      self.gui=BoxViewer()
       self.gui.imu=self
 
   def create_graph(self,title="Accl"):
-    acc_graph=graph.DataPlot(title=title)
+    acc_graph=DataPlot(title=title)
     acc_graph.imu=self
     acc_graph.show()
     return acc_graph
