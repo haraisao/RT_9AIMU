@@ -15,8 +15,10 @@
 #define SQRT5  2.2360679774997896964
 #define SQRT6  2.4494897427831783
 
-
 #define M_PI_DIV_2  M_PI*0.5
+
+#define BUTTER_HIGH	1
+#define BUTTER_LOW	0
 
 /*
   Butterworth filter

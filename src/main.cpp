@@ -17,6 +17,7 @@
 #include "MadgwickAHRS.h"
 #include "MahonyAHRS.h"
 #include "complementary_filter.h"
+#include "butter.h"
 
 /*
   Filter
@@ -25,6 +26,7 @@ KalmanFilter *kfilter;
 Madgwick *mdfilter;
 Mahony *mhfilter;
 imu_tools::ComplementaryFilter *cfilter;
+ButterFilter *bhfilter, *blfilter;
 
 
 /*
@@ -86,7 +88,6 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
       acc[i]=data->acc[i]/2048.0;
       mag[i]=data->mag[i]*0.3;
     }
-    //kfilter->update(data->acc, data->gyro, data->mag, Ts);
     kfilter->update(acc, gyro, mag, Ts);
 
     shm->yaw  = kfilter->getYaw();
@@ -100,7 +101,6 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
                          ACC_RAW2G(data->acc[0]),
                          ACC_RAW2G(data->acc[1]),
                          ACC_RAW2G(data->acc[2]));
-
 
     shm->yaw=mdfilter->getYaw();
     shm->pitch=mdfilter->getPitch();
@@ -289,6 +289,16 @@ main(int argc, char *argv[])
 
   char *filter_type=NULL;
 
+  float sample_freq=0;
+  float madgwick_beta=0;
+  float mahony_Kp=0;
+  float mahony_Ki=0;
+
+  int butter_h_dim=0;
+  double butter_h_Wn=0;
+  int butter_l_dim=0;
+  double butter_l_Wn=0;
+
   /*
    *  Options....
    */
@@ -356,12 +366,46 @@ main(int argc, char *argv[])
     else{ mag_x_off=mag_y_off=mag_z_off=0;}
 
     filter_type = get_value(config, "filter");
+
+    val = get_value(config, "sample_freq");
+    if(val){ sscanf(val, "%f", &sample_freq); }
+
+    val = get_value(config, "madgwick_beta");
+    if(val){ sscanf(val, "%f", &madgwick_beta); }
+
+    val = get_value(config, "mahony_Kp");
+    if(val){ sscanf(val, "%f", &mahony_Kp); }
+
+    val = get_value(config, "mahony_Ki");
+    if(val){ sscanf(val, "%f", &mahony_Ki); }
+
+    val = get_value(config, "butter_h_dim");
+    if(val){ sscanf(val, "%d", &butter_h_dim); }
+
+    val = get_value(config, "butter_h_Wn");
+    if(val){ sscanf(val, "%lf", &butter_h_Wn); }
+
+    val = get_value(config, "butter_l_dim");
+    if(val){ sscanf(val, "%d", &butter_l_dim); }
+
+    val = get_value(config, "butter_l_Wn");
+    if(val){ sscanf(val, "%lf", &butter_l_Wn); }
+
   }else{
   }
 
   /*** set default values ****/
   if(cdev == NULL){ cdev=(char *)DEFAULT_PORT; } 
   if(shmid < 0){ shmid=SHM_ID; }
+
+  if(sample_freq == 0){ sample_freq=100; }
+  if(madgwick_beta == 0){ madgwick_beta=0.6; }
+  if(mahony_Kp == 0){ mahony_Kp=1.0; }
+  if(mahony_Ki == 0){ mahony_Ki=0.0; }
+  if(butter_h_dim == 0){ butter_h_dim=2; }
+  if(butter_h_Wn == 0){ butter_h_Wn=0.01; }
+  if(butter_l_dim == 0){ butter_l_dim=2; }
+  if(butter_l_Wn == 0){ butter_l_Wn=0.01; }
 
   /*****************/
 
@@ -428,10 +472,14 @@ main(int argc, char *argv[])
 
   next=0;
 
-  kfilter = new KalmanFilter(100);
-  mdfilter = new Madgwick(100, 0.6);
-  mhfilter = new Mahony(100, 1.0, 0.0);
+  kfilter = new KalmanFilter(sample_freq);
+  mdfilter = new Madgwick(sample_freq, madgwick_beta);
+  mhfilter = new Mahony(sample_freq, mahony_Kp, mahony_Ki);
+
   cfilter = new imu_tools::ComplementaryFilter();
+
+  bhfilter = new ButterFilter(butter_h_dim, butter_h_Wn, BUTTER_HIGH);
+  blfilter = new ButterFilter(butter_l_dim, butter_l_Wn, BUTTER_LOW);
 
   /*
    * Start Daemon
