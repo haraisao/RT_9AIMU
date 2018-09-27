@@ -16,7 +16,7 @@
 #include "KalmanFilter.h"
 #include "MadgwickAHRS.h"
 #include "MahonyAHRS.h"
-#include "complementary_filter.h"
+//#include "complementary_filter.h"
 #include "butter.h"
 
 /*
@@ -25,7 +25,7 @@
 KalmanFilter *kfilter;
 Madgwick *mdfilter;
 Mahony *mhfilter;
-imu_tools::ComplementaryFilter *cfilter;
+//imu_tools::ComplementaryFilter *cfilter;
 ButterFilter *bhfilter, *blfilter;
 
 
@@ -123,7 +123,6 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
     double mx = MAG_RAW2UT(data->mag[0]);
     double my = MAG_RAW2UT(data->mag[1]);
     double mz = MAG_RAW2UT(data->mag[2]);
-*/
     double roll, pitch, yaw;
     cfilter->update(OMEGA_RAW2DEGS(data->gyro[0]),
                     OMEGA_RAW2DEGS(data->gyro[1]),
@@ -137,6 +136,7 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
     shm->pitch= RAD2DEG(pitch);
     shm->yaw  = RAD2DEG(yaw);
 
+*/
   }else {
 
   }
@@ -476,7 +476,7 @@ main(int argc, char *argv[])
   mdfilter = new Madgwick(sample_freq, madgwick_beta);
   mhfilter = new Mahony(sample_freq, mahony_Kp, mahony_Ki);
 
-  cfilter = new imu_tools::ComplementaryFilter();
+//  cfilter = new imu_tools::ComplementaryFilter();
 
   bhfilter = new ButterFilter(butter_h_dim, butter_h_Wn, BUTTER_HIGH);
   blfilter = new ButterFilter(butter_l_dim, butter_l_Wn, BUTTER_LOW);
