@@ -7,12 +7,8 @@
  */
 
 #include "RT_9A_IMU.h"
-#include "KalmanFilter.h"
-#include "MadgwickAHRS.h"
-#include "MahonyAHRS.h"
-#include "complementary_filter.h"
+#include "butter.h"
 #include "utils.h"
-//#include "my_filter.h"
 #include <getopt.h>
 #include <ncurses.h>
 #include <math.h>
@@ -34,10 +30,6 @@ FILE *log_fd=NULL;
 FILE *log_pose_fd=NULL;
 
 struct timeval start_tv;
-
-Madgwick *mdfilter;
-Mahony *mhfilter;
-imu_tools::ComplementaryFilter *cfilter;
 
 int record_time=0;
 
@@ -122,15 +114,15 @@ void print_data(int i, int current, struct imu_data_shm* shm)
      shm->acc_magnitude=calc_global_acc(ax,ay,az,roll,pitch,yaw, shm->global_acc);
 #endif
 
-     mvprintw(10,10, "rpy   : %lf, %lf, %lf", shm->roll, shm->pitch, shm->yaw);
+     mvprintw(10,10, "rpy  : %f, %f, %f", shm->roll, shm->pitch, shm->yaw);
      mvprintw(12,10, "Acc  : %+f, %+f, %+f  (%+f)  ",
                shm->global_acc[0],shm->global_acc[1], shm->global_acc[2],
-                  shm->acc_magnitude);
+               shm->acc_magnitude);
 
      record_time++;
      if (log_pose_fd){
        fprintf(log_pose_fd, "%d %d ",record_time, data->timestamp);
-       fprintf(log_pose_fd, "%lf, %lf, %lf ", yaw*57.3,pitch*57.3,roll*57.3);
+       fprintf(log_pose_fd, "%f, %f, %f ", shm->yaw, shm->pitch,shm->roll);
        fprintf(log_pose_fd, "%f, %f, %f %f\n",
                   shm->global_acc[0],shm->global_acc[1],shm->global_acc[2],
                   shm->acc_magnitude);
@@ -214,9 +206,6 @@ int main(int argc, char **argv)
     }
   }
 
-
-  //_shmem = (struct imu_data_shm *)map_shared_mem(shmid, sizeof(struct imu_data_shm), 0);
-  //_shmem = map_imu_shm(shmid, 0);
   _shmem = MAP_SHM(struct imu_data_shm, shmid, 0);
 
 
@@ -232,12 +221,6 @@ int main(int argc, char **argv)
   int flag=0;
   int i;
 
-  mdfilter = new Madgwick(100, 0.6);
-  mhfilter = new Mahony(100, 1.0, 0.0);
-  cfilter = new imu_tools::ComplementaryFilter();
-  //myfilter_ax = new MyFilter(0.01, 0);
-  //myfilter_ay = new MyFilter(0.01, 0);
-  //myfilter_az = new MyFilter(0.01, 0);
   gettimeofday(&start_tv, NULL);
 
   for(i=0; (n < 0 || i<n) && flag < 1000;){

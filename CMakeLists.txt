@@ -13,9 +13,10 @@ add_subdirectory(src)
 file(GLOB C_SRCS src/*.c)
 
 add_executable(imud src/main.cpp)
-
 target_link_libraries(imud imu imu_filter)
 
-add_executable( read_test src/shm_read.cpp)
-
+add_executable(read_test src/shm_read.cpp)
 target_link_libraries(read_test imu imu_filter ncurses m)
+
+add_executable(show_data src/show_data.cpp)
+target_link_libraries(show_data imu imu_filter m)
