@@ -5,9 +5,10 @@
 #include "utils.h"
 
 void displayArray(double *data, int n){
+   int i;
    int m=5;
    printf("\n{\n");
-   for(int i=0;i<n;i++){
+   for(i=0;i<n;i++){
      if((i % m) == 0 ) printf("\n");
      printf("%lf ", data[i]);
    }
