@@ -5,12 +5,23 @@
 #include "KalmanFilter.h"
 
 
+float conv_normal(float v){
+  if(v > M_PI){
+    return v - M_PI*2;
+  }else if (v < -M_PI){
+    return v + M_PI*2;
+  }else{
+    return v;
+  }
+}
+
 void
 KalmanFilter::update(double acc[3], double gyro[3], double mag[3], double Ts)
 {
   apply_kalman_filter(acc, gyro, mag, this->Pitch_Roll,
               &this->Est_Yaw,this->CovMat_P,&this->CovValue_py,Ts,this->flag);
-  this->roll = M_PI-Pitch_Roll[1];
+
+  this->roll  = conv_normal(M_PI-Pitch_Roll[1]);
   this->pitch = -correct_pitch(Pitch_Roll[0], acc);
   this->yaw   = Est_Yaw;
 

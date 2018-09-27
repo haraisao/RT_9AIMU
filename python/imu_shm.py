@@ -363,11 +363,15 @@ class ImuShm(object):
       self.gui=BoxViewer()
       self.gui.imu=self
 
-  def create_graph(self,title="Accl"):
-    acc_graph=DataPlot(title=title)
-    acc_graph.imu=self
-    acc_graph.show()
-    return acc_graph
+  def create_graph(self, typ="Angles"):
+    if typ == "Angles":
+      _graph=graph.PlotAngles(self)
+    elif typ == "Accel":
+      _graph=graph.PlotAccel(self)
+    else:
+      return None
+    _graph.show()
+    return _graph
 
   #
   # start event-loop

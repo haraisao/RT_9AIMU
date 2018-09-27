@@ -8,9 +8,11 @@ from numpy import *
 import time
 from scipy import signal
 
+#
+#
+qtapp=None
 
-app=None
-
+#
 color={ 'black':Qt.Qt.black, 'blue':Qt.Qt.blue, 'color0':Qt.Qt.color0,
    'color1':Qt.Qt.color1, 'cyan':Qt.Qt.cyan, 'darkBlue':Qt.Qt.darkBlue,
   'darkCya':Qt.Qt.darkCyan, 'darkGray':Qt.Qt.darkGray,
@@ -23,13 +25,21 @@ color={ 'black':Qt.Qt.black, 'blue':Qt.Qt.blue, 'color0':Qt.Qt.color0,
 class DataPlot(Qwt.QwtPlot):
   #
   def __init__(self, title="", size=(500,300), *args):
-    global app
+    global qtapp
 
-    if app is None:
-      app=Qt.QApplication([])
+    if qtapp is None:
+      qtapp=Qt.QApplication([])
 
     Qwt.QwtPlot.__init__(self, *args)
     self.imu=None
+
+    # Initialize data
+    self.x = arange(0.0, 100.1, 0.5)
+    self.curves=[]
+    self.data_y=[]
+
+    self.curve_list={}
+
     self.init_window()
     self.setTitle(title)
 
@@ -37,18 +47,11 @@ class DataPlot(Qwt.QwtPlot):
     self.resize(size[0], size[1])
     self.timer_id=0
 
-    self.hipass=None
-    self.lowpass=None
     self.filters=[]
 
   #
   #
   def init_window(self):
-    # Initialize data
-    self.x = arange(0.0, 100.1, 0.5)
-    self.curves=[]
-    self.data_y=[]
-
     self.setCanvasBackground(Qt.Qt.white)
     #self.alignScales()
 
@@ -80,6 +83,7 @@ class DataPlot(Qwt.QwtPlot):
     curve.setPen(Qt.QPen(color))
     self.curves.append(curve)
     self.data_y.append(data)
+    self.curve_list[name]=(curve, data)
     return (curve, data)
 
   #
@@ -99,47 +103,27 @@ class DataPlot(Qwt.QwtPlot):
 
   #
   #
-  def mk_hifilter(self, n, v=0.01, typ='high'):
-    if n == 0:
-      self.hipass=None
-    else:
-      self.hipass=signal.butter(n, v, typ)
-
-  #
-  #
-  def mk_lifilter(self, n, v=0.01, typ='low'):
-    if n == 0:
-      self.lowpass=None
-    else:
-      self.lowpass=signal.butter(n, v, typ)
-  #
-  #
   def append_filter(self, n, v=0.01, typ='low'):
     if n > 0:
       self.filters.append(signal.butter(n, v, typ))
   #
   #
   def apply_filters(self, i):
+    data_y=self.data_y[i]
     for ff in self.filters :
-      self.data_y[i]=signal.filtfilt(ff[0], ff[1], self.data_y[i])
+      data_y=signal.filtfilt(ff[0], ff[1], data_y)
+    return data_y
 
   #
-  #
-  def apply_filter(self, i):
-    if self.hipass :
-      self.data_y[i]=signal.filtfilt(self.hipass[0], self.hipass[1], self.data_y[i])
-    if self.lowpass :
-      self.data_y[i]=signal.filtfilt(self.lowpass[0], self.lowpass[1], self.data_y[i])
-
-
   def setValue(self, idx, val, filters=[]):
-    self.data_y[idx] = concatenate((self.data_y[idx][1:], self.data_y[idx][:1]), 0)
-    self.data_y[idx][-1] = val
+    self.data_y[idx]=concatenate((self.data_y[idx][1:],self.data_y[idx][:1]),0)
+    self.data_y[idx][-1]=val
 
+    data_y=self.data_y[idx]
     for ff in filters:
-      self.data_y[i]=signal.filtfilt(ff[0], ff[1], self.data_y[i])
+      data_y=signal.filtfilt(ff[0], ff[1], data_y)
 
-    self.curves[idx].setData(self.x, self.data_y[idx])
+    self.curves[idx].setData(self.x, data_y)
 
   #
   # callback 
@@ -151,10 +135,10 @@ class DataPlot(Qwt.QwtPlot):
 
   #
   # start/stop timer
-  def start_timer(self, intval=10):
+  def start(self, intval=10):
     self.timer_id=self.startTimer(intval)
 
-  def stop_timer(self):
+  def stop(self):
     if self.timer_id :
       self.killTimer(self.timer_id)
       self.timer_id=0
@@ -177,7 +161,7 @@ class PlotAccel(DataPlot):
   #
   def set_global_acc(self, val):
     for i in range(3):
-      self.setValue(i, val[i] *90)
+      self.setValue(i, val[i]*100, self.filters)
 
     self.replot()
 
@@ -202,24 +186,23 @@ class PlotAngles(DataPlot):
     self.mkCurve("Pitch", Qt.Qt.green)
     self.mkCurve("Yaw", Qt.Qt.blue)
 
-    #self.hipass=signal.butter(1,0.002,'high')
-    #self.lowpass=signal.butter(1,0.01,'low')
-    self.hipass=None
-    self.lowpass=None
+    #self.append_filter(1,0.002,'high')
+    #self.append_filter(1,0.01,'low')
 
   #
   #  set angle (roll,pitch,yaw)
   #
   def set_angles(self, val):
     for i in range(3):
-      self.data_y[i] = concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
+      self.data_y[i]=concatenate((self.data_y[i][1:], self.data_y[i][:1]), 0)
       if i == 2:
         self.data_y[i][-1] = val[i] -180
       else:
         self.data_y[i][-1] = val[i]
 
-      self.apply_filter(i)
-      self.curves[i].setData(self.x, self.data_y[i])
+      data_y=self.apply_filters(i)
+
+      self.curves[i].setData(self.x, data_y)
 
     self.replot()
 
@@ -227,6 +210,6 @@ class PlotAngles(DataPlot):
   #
   def update(self):
     if self.imu :
-      angleis = self.imu.get_angles()
+      angles = self.imu.get_angles()
       self.set_angles( angles )
 
