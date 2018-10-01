@@ -15,6 +15,8 @@ import threading
 from gl import *
 from graph import *
 
+import graph2 as gph
+
 #  
 
 class ImuShm(object):
