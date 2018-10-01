@@ -61,21 +61,21 @@ class GraphWin(QtGui.QWidget):
     self.resize(600,300)
 
 
-  def mkPlot(self,name):
-    pw=DataPlotWidget(name)
+  def mkPlot(self, nm):
+    pw=DataPlotWidget(nm)
     self.layout.addWidget(pw)
-    self.plotter[name]=pw
-    pw.addCurveItem(name)
+    self.plotter[nm]=pw
+    pw.addCurveItem(nm)
 
-  def mkAccelPlot(self, name, imu):
-    pw=AccelPlotWidget(name, imu)
+  def mkAccelPlot(self, nm, imu):
+    pw=AccelPlotWidget(nm, imu)
     self.layout.addWidget(pw)
-    self.plotter[name]=pw
+    self.plotter[nm]=pw
 
-  def mkAnglePlot(self, name, imu):
-    pw=AnglePlotWidget(name, imu)
+  def mkAnglePlot(self, nm, imu):
+    pw=AnglePlotWidget(nm, imu)
     self.layout.addWidget(pw)
-    self.plotter[name]=pw
+    self.plotter[nm]=pw
 
   def mkImuGraph(self, imu):
      self.mkAnglePlot('Angle', imu)
@@ -110,8 +110,8 @@ class GraphWin(QtGui.QWidget):
 #
 #     
 class DataPlotWidget(pg.PlotWidget):
-  def __init__(self, name, *args):
-    pg.PlotWidget.__init__(self, *args) 
+  def __init__(self, name, *args, **kargs):
+    pg.PlotWidget.__init__(self, *args, **kargs) 
     self.name=name
     self.curves={}
 
@@ -120,10 +120,10 @@ class DataPlotWidget(pg.PlotWidget):
     self.timer=QtCore.QTimer()
     self.timer.timeout.connect(self.refresh)
 
-  def addCurveItem(self, name, **kargs):
+  def addCurveItem(self, nm, **kargs):
     itm=DataCurve(**kargs)
     self.plotItem.addItem(itm)
-    self.curves[name]=itm
+    self.curves[nm]=itm
 
   def startTimer(self, val):
     self.timer.start(val)
@@ -189,11 +189,12 @@ class DataCurve(pg.PlotCurveItem):
 #
 class AccelPlotWidget(DataPlotWidget):
   def __init__(self, name, imu, *args):
-    DataPlotWidget.__init__(self, name, *args) 
-    self.addCurveItem('acc_x', pen=pg.mkPen('r'))
-    self.addCurveItem('acc_y', pen=pg.mkPen('g'))
-    self.addCurveItem('acc_z', pen=pg.mkPen('b'))
+    DataPlotWidget.__init__(self, name, *args, title="Accel") 
+    self.addCurveItem('acc_x', pen=pg.mkPen('r'), name="acc_x")
+    self.addCurveItem('acc_y', pen=pg.mkPen('g'), name="acc_y")
+    self.addCurveItem('acc_z', pen=pg.mkPen('b'), name="acc_z")
     self.imu=imu
+    self.plotItem.setRange(yRange=(-3,3))
 
   def set_imu(self, x):
     self.imu=x
@@ -211,11 +212,12 @@ class AccelPlotWidget(DataPlotWidget):
 #
 class AnglePlotWidget(DataPlotWidget):
   def __init__(self, name, imu, *args):
-    DataPlotWidget.__init__(self, name, *args) 
-    self.addCurveItem('angle_x', pen=pg.mkPen('r'))
-    self.addCurveItem('angle_y', pen=pg.mkPen('g'))
-    self.addCurveItem('angle_z', pen=pg.mkPen('b'))
+    DataPlotWidget.__init__(self, name, *args, title="Angle") 
+    self.addCurveItem('angle_x', pen=pg.mkPen('r'), name="roll")
+    self.addCurveItem('angle_y', pen=pg.mkPen('g'), name="pitch")
+    self.addCurveItem('angle_z', pen=pg.mkPen('b'), name="yaw")
     self.imu=imu
+    self.plotItem.setRange(yRange=(-200,200))
 
   def set_imu(self, x):
     self.imu=x

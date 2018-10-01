@@ -365,21 +365,32 @@ class ImuShm(object):
       self.gui=BoxViewer()
       self.gui.imu=self
 
-  def create_graph(self, typ="Angles"):
-    if typ == "Angles":
-      _graph=graph.PlotAngles(self)
-    elif typ == "Accel":
-      _graph=graph.PlotAccel(self)
-    else:
-      return None
-    _graph.show()
-    return _graph
+#  def create_graph(self, typ="Angles"):
+#    if typ == "Angles":
+#      _graph=graph.PlotAngles(self)
+#    elif typ == "Accel":
+#      _graph=graph.PlotAccel(self)
+#    else:
+#      return None
+#    _graph.show()
+#    return _graph
+
+  def create_graph(self):
+    self.graph=gph.GraphWin()
+    self.graph.mkImuGraph(self)
 
   #
   # start event-loop
   def start(self):
     if self.gui :
       self.gui.start()
+
+    if self.graph :
+      self.graph.start_all(10)
+
+  def stop(self):
+    if self.graph :
+      self.graph.stop_all()
 
 
 #
