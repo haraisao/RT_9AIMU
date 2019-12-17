@@ -26,7 +26,7 @@ char mkSum(char *data, int len)
 
   if (len<1) return (char)0;
   res = data[0];
-  for(i=0;i<len;i++){
+  for(i=1;i<len;i++){
     res=res ^ data[i];
   }
   return res;
