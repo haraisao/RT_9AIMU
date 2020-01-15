@@ -166,12 +166,12 @@ void apply_command(struct imu_data_shm *shm, struct imu_data *data)
       gyro_y_off += gyro_y[i];
       gyro_z_off += gyro_z[i];
     }
-      shm->acc_off[0] = acc_x_off /1000;
-      shm->acc_off[1] = acc_y_off /1000;
-      shm->acc_off[2] = (acc_z_off /1000) + 2048;
-      shm->gyro_off[0] = gyro_x_off /1000;
-      shm->gyro_off[1] = gyro_y_off /1000;
-      shm->gyro_off[2] = gyro_z_off /1000;
+      shm->acc_off[0] = acc_x_off /CALIB_DATA_LEN;
+      shm->acc_off[1] = acc_y_off /CALIB_DATA_LEN;
+      shm->acc_off[2] = (acc_z_off /CALIB_DATA_LEN) + 2048;
+      shm->gyro_off[0] = gyro_x_off /CALIB_DATA_LEN;
+      shm->gyro_off[1] = gyro_y_off /CALIB_DATA_LEN;
+      shm->gyro_off[2] = gyro_z_off /CALIB_DATA_LEN;
     shm->cmd=0;
   } 
   return;
