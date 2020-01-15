@@ -40,9 +40,14 @@ int open_port(char *dev){
   struct termios tio;
   int fd;
 
+  /* set raw mode */
+#if 0
   memset(&tio,0,sizeof(tio));
-  tio.c_cflag=CS8|CREAD|CLOCAL;	
+  tio.c_cflag=CS8|CREAD|CLOCAL;
   tio.c_cc[VMIN]=1;
+#else
+  cfmakeraw(&tio);
+#endif
   cfsetospeed(&tio, B57600);
   cfsetispeed(&tio, B57600);
 
