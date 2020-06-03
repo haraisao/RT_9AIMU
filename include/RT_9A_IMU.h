@@ -45,8 +45,14 @@
 #define ACC_RAW2G(v)	v/2048.0
 #define ACC_RAW2MS(v)	v/2048.0 * 9.8
 #define OMEGA_RAW2DEGS(v)	v/16.4
+
+#ifdef __OLD_VER__
 #define MAG_RAW2UT(v)	v*0.3
 #define TEMP_RAW2DEG(v)	v/340.0 + 35
+#else
+#define MAG_RAW2UT(v)	v*0.15
+#define TEMP_RAW2DEG(v)	v/333.87 + 21
+#endif
 
 #define RAD2DEG(v)	v*180/M_PI
 #define DEG2RAD(v)	v*M_PI/180.0
