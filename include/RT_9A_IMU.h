@@ -23,6 +23,9 @@
 #include <errno.h>
 #include <syslog.h>
 
+
+//#define __OLD_VER__
+
 /**/
 #ifndef SHM_ID
 #define SHM_ID	130
