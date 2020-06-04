@@ -45,6 +45,7 @@
 #define ACC_RAW2G(v)	v/2048.0
 #define ACC_RAW2MS(v)	v/2048.0 * 9.8
 #define OMEGA_RAW2DEGS(v)	v/16.4
+#define OMEGA_RAW2RAD(v)	v*M_PI/2952.0
 
 #ifdef __OLD_VER__
 #define MAG_RAW2UT(v)	v*0.3

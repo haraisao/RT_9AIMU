@@ -84,9 +84,9 @@ void apply_filter(struct imu_data_shm *shm, struct imu_data *data)
 
     /* for IMU 9A */
     for (int i=0; i<3; i++){
-      gyro[i]=data->gyro[i]*M_PI/2952.0;
-      acc[i]=data->acc[i]/2048.0;
-      mag[i]=data->mag[i]*0.3;
+      gyro[i]=OMEGA_RAW2RAD(data->gyro[i]);
+      acc[i]=ACC_RAW2G(data->acc[i]);
+      mag[i]=MAG_RAW2UT(data->mag[i]);
     }
     kfilter->update(acc, gyro, mag, Ts);
 
